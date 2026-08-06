@@ -1,0 +1,131 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12"
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  PYTHONHASHSEED: "0"
+  PYTHONUTF8: "1"
+  OMP_NUM_THREADS: "1"
+  MKL_NUM_THREADS: "1"
+  TOKENIZERS_PARALLELISM: "false"
+
+  # Hard offline posture. No job in this workflow may reach a model provider.
+  # The offline guard also DELETES provider keys from the environment at process
+  # start, so a leaked secret cannot cause a billed call.
+  RAG_EVAL_OFFLINE: "1"
+  RAG_EVAL_CACHE_DIR: tests/fixtures/cache
+  HF_HUB_OFFLINE: "1"
+  TRANSFORMERS_OFFLINE: "1"
+
+jobs:
+  quality:
+    name: format / lint / types
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements/lock/linux-py312.txt
+
+      - name: Install locked dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements/lock/linux-py312.txt
+          python -m pip install -e . --no-deps
+
+      - run: python -m ruff format --check --diff .
+      - run: python -m ruff check --output-format=github .
+      - run: python -m mypy src/rag_eval
+
+  tests:
+    name: tests (ubuntu, py3.12)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements/lock/linux-py312.txt
+
+      - name: Install locked dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements/lock/linux-py312.txt
+          python -m pip install -e . --no-deps
+
+      # Fails the build if torch/transformers/faiss leak into the CI resolution.
+      # Without this guard a transitive dependency can silently pull ~2.5 GB of
+      # nvidia-* CUDA wheels, and the symptom is a timeout minutes from the cause.
+      - name: Assert CI environment is torch-free and credential-free
+        run: python scripts/assert_ci_env.py
+
+      # Proves the web3/eth-typing pytest hazard is neutralised by pyproject.toml
+      # alone. This workflow deliberately does NOT set
+      # PYTEST_DISABLE_PLUGIN_AUTOLOAD, so if the `-p no:` line were removed the
+      # local environment would break while CI stayed green.
+      - name: Assert pytest plugin guard is active
+        run: python -m pytest tests/unit/test_pytest_plugin_guard.py -q
+
+      - name: Validate corpus and dataset
+        run: |
+          python scripts/validate_corpus.py
+          python scripts/validate_dataset.py
+
+      - name: Unit tests
+        run: python -m pytest tests/unit -m unit -q --cov=rag_eval --cov-report=xml
+
+      - name: Integration tests (offline, replayed cache)
+        run: python -m pytest tests/integration -m integration -q --cov=rag_eval --cov-append --cov-report=xml
+
+      - name: Regression tests (frozen failures)
+        run: python -m pytest tests/regression -m regression -q --cov=rag_eval --cov-append --cov-report=xml
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage
+          path: coverage.xml
+          if-no-files-found: warn
+
+  tests-windows:
+    # The author develops on Windows; the likeliest portability defect in this
+    # repo is a path-separator or text-encoding bug in JSONL/HTML writing, and
+    # corpus bytes are hashed into every run manifest. Unit tests only -- Windows
+    # runners bill at 2x and the rest adds nothing here.
+    name: unit tests (windows, py3.12)
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements/lock/windows-py312.txt
+
+      - name: Install locked dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements/lock/windows-py312.txt
+          python -m pip install -e . --no-deps
+
+      - run: python -m pytest tests/unit -m unit -q

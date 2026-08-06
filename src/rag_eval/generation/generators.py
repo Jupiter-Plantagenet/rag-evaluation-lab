@@ -9,6 +9,7 @@ this module is safe in CI with no credentials.
 from __future__ import annotations
 
 import os
+import re
 import time
 from typing import Protocol
 
@@ -24,26 +25,59 @@ class Generator(Protocol):
     def generate(self, prompt: str, *, template_sha: str = "") -> Completion: ...
 
 
+_RETRY_HINT_RE = re.compile(r"retry in ([0-9.]+)s", re.IGNORECASE)
+
+
 class GeminiGenerator:
-    """google-genai, temperature 0, no retries that would hide a failure.
+    """google-genai, temperature 0, with quota-aware pacing.
 
     Temperature 0 is not a determinism guarantee -- the provider may still vary
     -- which is exactly why the cache exists. It reduces variance; the cache
     removes it.
+
+    **On the rate limiter.** The audit of the predecessor project criticised a
+    blocking ``time.sleep`` rate limiter, so it is worth being explicit about
+    why one is correct here. There, the sleep ran inside an ``async def`` route
+    in a web server, blocking the event loop and serialising every concurrent
+    user's request. Here it runs in a synchronous batch script whose only job is
+    to make N calls in order. Blocking is the intended behaviour; there is
+    nothing else to do while waiting.
+
+    The free tier permits 5 requests per minute, and a 429 response states
+    exactly how long to wait. Both are used: a proactive pace so the quota is
+    rarely hit, and the server's own hint when it is. Cache hits bypass this
+    entirely, so a second run over the same cases is immediate.
     """
 
     name = "gemini"
+
+    # Class-level, because the quota is per project rather than per object --
+    # separate generator instances share one budget.
+    _last_call_at: float = 0.0
 
     def __init__(
         self,
         model: str = "gemini-2.5-flash",
         temperature: float = 0.0,
         max_output_tokens: int = 1024,
+        min_interval_s: float = 12.5,
+        max_retries: int = 4,
     ) -> None:
         self.model = model
         self.temperature = temperature
         self.max_output_tokens = max_output_tokens
+        # 12.5s ~= 5 requests/minute with headroom. Overridable for paid tiers.
+        self.min_interval_s = min_interval_s
+        self.max_retries = max_retries
         self._client = None
+
+    def _pace(self) -> None:
+        """Space live calls so the quota is rarely hit in the first place."""
+        elapsed = time.monotonic() - GeminiGenerator._last_call_at
+        wait = self.min_interval_s - elapsed
+        if wait > 0:
+            time.sleep(wait)
+        GeminiGenerator._last_call_at = time.monotonic()
 
     @property
     def params(self) -> dict:
@@ -76,16 +110,42 @@ class GeminiGenerator:
 
     def generate(self, prompt: str, *, template_sha: str = "") -> Completion:
         client = self._ensure_client()
-        started = time.perf_counter()
-        resp = client.models.generate_content(
-            model=self.model,
-            contents=prompt,
-            config={
-                "temperature": self.temperature,
-                "max_output_tokens": self.max_output_tokens,
-                "top_p": 1.0,
-            },
-        )
+        config = {
+            "temperature": self.temperature,
+            "max_output_tokens": self.max_output_tokens,
+            "top_p": 1.0,
+        }
+
+        last_error: Exception | None = None
+        for attempt in range(self.max_retries + 1):
+            self._pace()
+            started = time.perf_counter()
+            try:
+                resp = client.models.generate_content(
+                    model=self.model, contents=prompt, config=config
+                )
+                break
+            except Exception as e:  # noqa: BLE001 - re-raised below if unrecoverable
+                message = str(e)
+                if "RESOURCE_EXHAUSTED" not in message and "429" not in message:
+                    raise
+                last_error = e
+                if attempt == self.max_retries:
+                    raise GenerationError(
+                        f"quota exhausted after {self.max_retries + 1} attempts. "
+                        f"Raise min_interval_s, or run against the cache with "
+                        f"RAG_EVAL_OFFLINE=1.\n{message[:300]}"
+                    ) from e
+
+                # Honour the server's own hint when it gives one; it knows the
+                # window better than any backoff schedule we could invent.
+                hint = _RETRY_HINT_RE.search(message)
+                delay = float(hint.group(1)) + 1.0 if hint else 15.0 * (2**attempt)
+                print(f"    quota hit; waiting {delay:.0f}s (attempt {attempt + 1})", flush=True)
+                time.sleep(delay)
+        else:  # pragma: no cover - loop always breaks or raises
+            raise GenerationError(str(last_error))
+
         elapsed = (time.perf_counter() - started) * 1000.0
 
         u = resp.usage_metadata
