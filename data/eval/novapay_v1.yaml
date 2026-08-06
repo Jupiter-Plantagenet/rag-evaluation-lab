@@ -1143,3 +1143,547 @@ cases:
     rather than incorrectness -- both halves are individually easy, and the
     failure is answering only one.
   split: test
+
+# ===========================================================================
+# EXPANSION (16) -- added to raise the held-out split from 15 to 22.
+#
+# Rationale: at n=15, almost every metric difference has a bootstrap confidence
+# interval crossing zero, so the comparison could only ever conclude "no
+# measurable difference" regardless of what the improved pipeline did. That is
+# an honest result but an uninformative one. n=22 does not make the study
+# well-powered -- it is still small and the report still says so -- but it
+# narrows the intervals enough that a large effect can be distinguished from
+# noise, which is the minimum needed for the comparison to be worth running.
+#
+# These were authored under the same four-pass procedure, from the same ledger,
+# before any pipeline existed.
+# ===========================================================================
+
+- id: F-13
+  category: factual
+  question: What happens if I go over the API rate limit?
+  answerable: true
+  reference_answer: >-
+    You get HTTP 429 with a Retry-After header giving the number of seconds to
+    wait. Clients should honour it and back off exponentially; the official SDKs
+    do this automatically.
+  required_facts:
+    - fact_id: api.rate_limit.response_code
+      matcher:
+        kind: all_of
+        matchers:
+          - {kind: numeric, value: 429, unit: count}
+          - {kind: literal, value: "Retry-After"}
+  acceptable_answer_notes: >-
+    Both the status code and the header are required -- the header is the
+    actionable half. Noting the one-second sliding window or the burst tolerance
+    is a plus.
+  expected_document_ids: [api-authentication]
+  expected_evidence_spans:
+    - doc_id: api-authentication
+      quote: "Exceeding the limit returns **HTTP 429 with a `Retry-After` header**"
+      heading_path: [Rate limits]
+  forbidden_or_unsupported_claims:
+    - "PAY_004 (that is the account volume limit, a different mechanism entirely)"
+  expected_abstention_behaviour: answer
+  scoring_notes: >-
+    Two different "limit reached" mechanisms exist in the corpus -- API rate
+    limiting (429) and monthly volume (PAY_004) -- in two documents. Tests
+    whether retrieval distinguishes them or merges them on the shared word.
+  split: dev
+
+- id: F-14
+  category: factual
+  question: How long do I have to submit evidence on a dispute?
+  answerable: true
+  reference_answer: >-
+    7 calendar days from notification. Submitting evidence is called
+    representment and costs $25.00.
+  required_facts:
+    - fact_id: fee.chargeback_representment
+      matcher: {kind: numeric, value: 7, unit: days}
+  acceptable_answer_notes: >-
+    Must be 7 calendar days. Mentioning the $25 representment cost is a plus.
+    Note the superseded 5-day window is also in the corpus.
+  expected_document_ids: [refunds-and-disputes]
+  expected_evidence_spans:
+    - doc_id: refunds-and-disputes
+      quote: "Merchants have **7 calendar days** from notification to submit evidence."
+      heading_path: [Disputes, "Responding to a dispute (representment)"]
+  forbidden_or_unsupported_claims:
+    - "5 calendar days (superseded 2026-03-01)"
+  expected_abstention_behaviour: answer
+  scoring_notes: >-
+    A factual case with a version trap. Unlike T-01 the question is not framed
+    temporally, so a system that surfaces the archive without noticing its
+    SUPERSEDED banner will answer 5 days confidently.
+  split: test
+
+- id: F-15
+  category: factual
+  question: How many dashboard seats do I get on Pro?
+  answerable: true
+  reference_answer: 15 seats on Pro. Starter has 3 and Enterprise is unlimited.
+  required_facts:
+    - fact_id: plan.pro_price
+      matcher: {kind: numeric, value: 15, unit: count}
+  acceptable_answer_notes: Quoting the other tiers is acceptable and often clearer.
+  expected_document_ids: [subscription-plans]
+  expected_evidence_spans:
+    - doc_id: subscription-plans
+      quote: "| Dashboard seats | 3 | 15 | unlimited |"
+      heading_path: [Plan comparison]
+  forbidden_or_unsupported_claims:
+    - "3 (that is Starter)"
+  expected_abstention_behaviour: answer
+  scoring_notes: >-
+    Table-cell extraction. The value is meaningful only by column position, so a
+    chunker that breaks the table header away from the rows destroys the
+    ability to answer even with the right chunk retrieved -- the cleanest
+    chunk-boundary probe in the set.
+  split: dev
+
+- id: F-16
+  category: factual
+  question: How long does NovaPay keep API request logs?
+  answerable: true
+  reference_answer: >-
+    90 days. Request and response bodies are not retained at all -- only
+    metadata such as endpoint, timestamp, status, latency, key and source IP.
+  required_facts:
+    - fact_id: retention.api_logs
+      matcher: {kind: numeric, value: 90, unit: days}
+  acceptable_answer_notes: >-
+    Noting that bodies are never retained is a plus and is the practically
+    important caveat.
+  expected_document_ids: [data-retention]
+  expected_evidence_spans:
+    - doc_id: data-retention
+      quote: "is retained for **90 days**. Request and response *bodies*"
+      heading_path: [Retention periods, "API request logs - 90 days"]
+  forbidden_or_unsupported_claims:
+    - "30 days (webhook delivery logs)"
+    - "7 years (transaction records)"
+  expected_abstention_behaviour: answer
+  scoring_notes: >-
+    The third of three retention periods in one document, deliberately paired
+    with F-05 and M-05 so that confusion between them is measurable as a
+    pattern rather than a single case.
+  split: test
+
+- id: M-07
+  category: multi_hop
+  question: I am setting up in India. What is my per-payment ceiling and how long will approval take?
+  answerable: true
+  reference_answer: >-
+    $2,000 per single transaction in India, rather than the $10,000 default.
+    India is also on the enhanced-due-diligence list, so onboarding triggers a
+    manual review taking up to 5 business days rather than the usual 24 hours.
+  required_facts:
+    - fact_id: limit.single_transaction.eea
+      matcher: {kind: numeric, value: 2000, unit: usd, tolerance: 1}
+    - fact_id: limit.kyc_approval_window
+      matcher: {kind: numeric, value: 5, unit: business_days}
+  acceptable_answer_notes: >-
+    Both halves required. The approval half depends on connecting India's
+    EDD status to the manual-review window, which is stated in a different
+    document.
+  expected_document_ids: [regional-restrictions, account-limits]
+  expected_evidence_spans:
+    - doc_id: regional-restrictions
+      quote: "| India | **$2,000** | local card-not-present rules |"
+      heading_path: [Regional transaction ceilings]
+    - doc_id: regional-restrictions
+      quote: "require enhanced due diligence at onboarding"
+      heading_path: [Enhanced due diligence]
+    - doc_id: account-limits
+      quote: "it takes **up to 5 business days**"
+      heading_path: [Account approval and KYC]
+  forbidden_or_unsupported_claims:
+    - "$10,000 (the default, overridden for India)"
+    - "24 hours (the standard window, not the manual-review one)"
+  expected_abstention_behaviour: answer
+  scoring_notes: >-
+    Both correct answers are the *exception* rather than the default, and both
+    defaults are more prominent in the corpus. A pipeline that retrieves
+    account-limits alone gets both halves confidently wrong.
+  split: dev
+
+- id: M-08
+  category: multi_hop
+  question: I want payouts within the hour. What do I have to change and what will it cost?
+  answerable: true
+  reference_answer: >-
+    Express payouts arrive within 30 minutes but require Pro or Enterprise, so
+    from Starter you would upgrade to Pro at $49 per month, then pay an
+    additional 0.5% on each express payout.
+  required_facts:
+    - fact_id: plan.pro_price
+      matcher: {kind: numeric, value: 49, unit: usd, tolerance: 0.01}
+    - fact_id: fee.express_payout
+      matcher: {kind: numeric, value: 0.5, unit: percent}
+  acceptable_answer_notes: >-
+    Both cost components required -- the recurring plan fee and the per-payout
+    percentage. Quoting only one has answered half the question asked.
+  expected_document_ids: [payout-schedules, subscription-plans]
+  expected_evidence_spans:
+    - doc_id: payout-schedules
+      quote: "Express payouts cost an additional **0.5%** of the payout amount."
+      heading_path: [Express payouts]
+    - doc_id: subscription-plans
+      quote: "**$49 per month**, billed monthly, cancellable at any time."
+      heading_path: [Pro]
+  forbidden_or_unsupported_claims:
+    - "quoting 0.5% as the only cost, omitting the plan upgrade"
+  expected_abstention_behaviour: answer
+  scoring_notes: >-
+    Tests cost decomposition across a recurring and a per-transaction fee in two
+    documents. incomplete_answer is the expected failure class rather than
+    incorrectness.
+  split: test
+
+- id: M-09
+  category: multi_hop
+  question: There is an outage on your side. Will I lose the webhooks that fire during it?
+  answerable: true
+  reference_answer: >-
+    Not immediately. Queued deliveries resume automatically once delivery is
+    restored, within the ordinary retry window of 32 hours and 36 minutes. Only
+    an outage longer than that window loses events. You are advised not to
+    reconfigure endpoints during an incident, as that loses queued attempts.
+  required_facts:
+    - fact_id: webhook.total_retry_window
+      matcher: {kind: regex, pattern: "32 hours|retry window|resume automatically"}
+  acceptable_answer_notes: >-
+    The reassurance must be bounded by the retry window -- an unqualified "no,
+    nothing is lost" is wrong. Mentioning the advice not to reconfigure
+    endpoints is a plus.
+  expected_document_ids: [incident-response, webhook-delivery]
+  expected_evidence_spans:
+    - doc_id: incident-response
+      quote: "Queued webhook deliveries resume automatically once delivery is restored"
+      heading_path: [During an incident]
+    - doc_id: webhook-delivery
+      quote: "**The total retry window is 32 hours and 36 minutes**"
+      heading_path: [Delivery and retries, Retry schedule]
+  forbidden_or_unsupported_claims:
+    - "nothing is ever lost (true only within the retry window)"
+  expected_abstention_behaviour: answer
+  scoring_notes: >-
+    The reassuring half is in incident-response and the limiting half in
+    webhook-delivery. A pipeline retrieving only the first produces a confident
+    over-promise -- the most costly kind of RAG error in a support setting,
+    because it reads as authoritative and is wrong in the customer's favour.
+  split: dev
+
+- id: A-06
+  category: aggregation
+  question: On Pro, what would I pay in total for a month with $100,000 across 1,000 card transactions?
+  answerable: true
+  reference_answer: >-
+    $2,849.00. The Pro rate is 2.5% + $0.30, so 2.5% of $100,000 is $2,500 plus
+    1,000 x $0.30 = $300, giving $2,800 in transaction fees, plus the $49
+    monthly subscription.
+  required_facts:
+    - fact_id: fee.card.pro
+      matcher: {kind: numeric, value: 2849, unit: usd, tolerance: 1}
+  acceptable_answer_notes: >-
+    The total must be $2,849. Showing the three components is strongly
+    preferred. Omitting the $49 subscription (giving $2,800) is the designed
+    near-miss and should be scored wrong.
+  expected_document_ids: [pricing-and-fees, subscription-plans]
+  expected_evidence_spans:
+    - doc_id: pricing-and-fees
+      quote: "Pro-plan merchants pay **2.5% + $0.30** on the same transactions."
+      heading_path: [Card payments]
+    - doc_id: subscription-plans
+      quote: "**$49 per month**, billed monthly, cancellable at any time."
+      heading_path: [Pro]
+  forbidden_or_unsupported_claims:
+    - "$2,800 (omits the subscription fee)"
+    - "$2,500 (omits the fixed per-transaction component)"
+  expected_abstention_behaviour: answer
+  scoring_notes: >-
+    Genuine three-term arithmetic across two documents, with no worked example
+    in the corpus to retrieve -- unlike A-01, which is deliberately retrievable.
+    A-01 and A-06 together separate "can retrieve arithmetic" from "can do
+    arithmetic".
+  split: dev
+
+- id: A-07
+  category: aggregation
+  question: My endpoint has 10 seconds to respond, but how does that compare to how long you keep retrying?
+  answerable: true
+  reference_answer: >-
+    The response timeout is 10 seconds per attempt, while retries continue for
+    32 hours and 36 minutes in total -- roughly 11,700 times longer. They
+    measure different things: one bounds a single attempt, the other bounds the
+    whole delivery effort.
+  required_facts:
+    - fact_id: webhook.timeout
+      matcher: {kind: numeric, value: 10, unit: seconds}
+    - fact_id: webhook.total_retry_window
+      matcher: {kind: numeric, value: 32, unit: hours}
+  acceptable_answer_notes: >-
+    Both quantities required. An explicit ratio is a plus but not required; what
+    matters is not conflating a per-attempt timeout with the overall window.
+  expected_document_ids: [webhook-delivery]
+  expected_evidence_spans:
+    - doc_id: webhook-delivery
+      quote: "An endpoint must return a **2xx status within 10 seconds**."
+      heading_path: [Delivery and retries]
+    - doc_id: webhook-delivery
+      quote: "**The total retry window is 32 hours and 36 minutes**"
+      heading_path: [Delivery and retries, Retry schedule]
+  forbidden_or_unsupported_claims:
+    - "treating the 10-second timeout as the total retry duration"
+  expected_abstention_behaviour: answer
+  scoring_notes: >-
+    Both facts are in one document but in different subsections with very
+    different units. Tests unit-aware comparison rather than retrieval.
+  split: test
+
+- id: A-08
+  category: aggregation
+  question: Of everything NovaPay stores, what is kept longest and what is kept shortest?
+  answerable: true
+  reference_answer: >-
+    Longest is 7 years, for transaction, payout, dispute and account/KYC
+    records. Shortest is 30 days, for webhook delivery logs. API request logs
+    sit between at 90 days, and audit logs and risk scores at 12 months.
+  required_facts:
+    - fact_id: retention.transaction_records
+      matcher: {kind: numeric, value: 7, unit: years}
+    - fact_id: retention.webhook_delivery_logs
+      matcher: {kind: numeric, value: 30, unit: days}
+  acceptable_answer_notes: >-
+    Both extremes required. Listing the intermediate periods is a plus. Naming
+    12 months as the shortest is the designed error -- it is the shortest in the
+    lower half of the table if the reader stops scanning early.
+  expected_document_ids: [data-retention]
+  expected_evidence_spans:
+    - doc_id: data-retention
+      quote: "| Transaction records | **7 years** |"
+      heading_path: [Retention periods]
+    - doc_id: data-retention
+      quote: "| **Webhook delivery logs** | **30 days** |"
+      heading_path: [Retention periods]
+  forbidden_or_unsupported_claims:
+    - "12 months as the shortest"
+  expected_abstention_behaviour: answer
+  scoring_notes: >-
+    Requires reading a whole table rather than one row, so it is highly
+    sensitive to chunk boundaries: a chunker that splits the table mid-way
+    produces an answer that is confidently wrong about the extremes while
+    quoting real values.
+  split: dev
+
+- id: U-05
+  category: unanswerable
+  gap_id: gap.chargeback_protection
+  question: Does NovaPay offer chargeback protection?
+  answerable: false
+  reference_answer: null
+  required_facts: []
+  acceptable_answer_notes: >-
+    Correct behaviour is to say no such product is documented, ideally noting
+    what IS available -- Radar scoring, 3-D Secure liability shift, and
+    representment -- while being clear none of those is a guarantee. Asserting a
+    protection product exists is the failure.
+  expected_document_ids: []
+  expected_evidence_spans:
+    - doc_id: fraud-controls
+      quote: "It does not guarantee any fraud rate, and NovaPay publishes no accuracy figure"
+      heading_path: [What Radar does not do]
+      authoritative: false
+  forbidden_or_unsupported_claims:
+    - "yes, chargeback protection is available"
+    - "any named protection or guarantee product"
+  expected_abstention_behaviour: abstain
+  scoring_notes: >-
+    The hardest abstention case in the set. fraud-controls.md is highly
+    retrievable and contains a statement that is adjacent, relevant, and the
+    exact opposite of what the question hopes for. A system that retrieves
+    "3-D Secure shifts liability" and generalises it to a protection product has
+    made a defensible-looking inference that is nonetheless unsupported --
+    which is precisely the behaviour worth measuring.
+  split: dev
+
+- id: U-06
+  category: unanswerable
+  gap_id: gap.sandbox_data_reset
+  question: How do I clear out my test data and start the sandbox fresh?
+  answerable: false
+  reference_answer: null
+  required_facts: []
+  acceptable_answer_notes: >-
+    The documentation describes test mode at length without ever saying how to
+    reset it. A good answer says so and may note what IS documented: test mode
+    has separate data, and test data is never migrated to live.
+  expected_document_ids: []
+  expected_evidence_spans:
+    - doc_id: api-authentication
+      quote: "Test-mode data is never migrated to live mode"
+      heading_path: [Testing]
+      authoritative: false
+  forbidden_or_unsupported_claims:
+    - "any specific reset procedure, dashboard path, or API endpoint"
+  expected_abstention_behaviour: abstain
+  scoring_notes: >-
+    The most realistic gap in the set: a mundane operational question the
+    documentation simply does not answer. Retrieval will confidently surface the
+    Testing section, which is topically perfect and answers a different
+    question. Tests relevance-versus-sufficiency at the lowest possible stakes,
+    where inventing a plausible dashboard path is very tempting.
+  split: test
+
+- id: B-04
+  category: ambiguous
+  question: How long does a refund take?
+  answerable: true
+  reference_answer: >-
+    It depends which side you mean. Your balance is debited immediately when the
+    refund is submitted, but the customer sees the money 5 to 10 business days
+    later depending on their issuing bank. Which did you mean?
+  required_facts:
+    - fact_id: policy.refund_window
+      matcher: {kind: regex, pattern: "5 to 10|5-10|five to ten"}
+    - fact_id: fee.refund
+      matcher: {kind: regex, pattern: "immediat|at the moment|straight away|right away"}
+  acceptable_answer_notes: >-
+    Surfacing both timelines is as good as asking which is meant. Giving only
+    "5 to 10 business days" is the designed collapse -- correct for the customer,
+    silently wrong for the merchant asking when their balance moves.
+  expected_document_ids: [refunds-and-disputes]
+  expected_evidence_spans:
+    - doc_id: refunds-and-disputes
+      quote: "The funds appear on the cardholder's statement in **5 to 10 business days**"
+      heading_path: [Refunds, Refund timing]
+    - doc_id: refunds-and-disputes
+      quote: "The merchant balance is debited at the moment the refund is submitted"
+      heading_path: [Refunds, Refund timing]
+  forbidden_or_unsupported_claims:
+    - "5 to 10 business days, stated unconditionally"
+  expected_abstention_behaviour: clarify
+  scoring_notes: >-
+    Unlike B-01 and B-02, the ambiguity is not about plan or region but about
+    WHOSE timeline is being asked after. Both facts sit in adjacent sentences in
+    one document, so retrieval is easy and the failure is purely one of
+    generation collapsing two readings into one.
+  split: dev
+
+- id: B-05
+  category: ambiguous
+  question: What is the rate limit?
+  answerable: true
+  reference_answer: >-
+    For the API it is 100 requests per second on Starter and 1,000 on Pro, with
+    Enterprise contractual. If you mean monthly processing volume, that is a
+    separate limit: $50,000 on Starter and $500,000 on Pro. Which did you mean?
+  required_facts:
+    - fact_id: api.rate_limit.starter
+      matcher: {kind: numeric, value: 100, unit: rps}
+    - fact_id: api.rate_limit.pro
+      matcher: {kind: numeric, value: 1000, unit: rps}
+  acceptable_answer_notes: >-
+    Enumerating the API tiers is the minimum. Noting that "limit" could also
+    mean the monthly volume ceiling is the stronger answer, since the corpus
+    uses the word for both.
+  expected_document_ids: [api-authentication]
+  expected_evidence_spans:
+    - doc_id: api-authentication
+      quote: "| Starter | **100 requests per second** |"
+      heading_path: [Rate limits]
+    - doc_id: api-authentication
+      quote: "| Pro | **1,000 requests per second** |"
+      heading_path: [Rate limits]
+  forbidden_or_unsupported_claims:
+    - "100 req/s, stated unconditionally"
+  expected_abstention_behaviour: clarify
+  scoring_notes: >-
+    Doubly ambiguous -- by plan and by which kind of limit is meant. The
+    plan ambiguity is resolvable from one retrieved table; the second requires
+    noticing that a different document uses the same word for a different
+    quantity, which is much harder and is the interesting half.
+  split: test
+
+- id: T-03
+  category: temporal
+  question: A dispute came in last week. I read somewhere I only get 5 days to respond - is that right?
+  answerable: true
+  reference_answer: >-
+    No, that is the superseded policy. The representment window was extended
+    from 5 calendar days to 7 calendar days effective 1 March 2026, so a dispute
+    from last week gives you 7 days.
+  required_facts:
+    - fact_id: fee.chargeback_representment
+      matcher: {kind: numeric, value: 7, unit: days}
+    - fact_id: policy.refund_window
+      matcher: {kind: regex, pattern: "supersed|no longer|changed|extended|previous"}
+  acceptable_answer_notes: >-
+    Must correct the premise to 7 days. Explaining that 5 days was the policy
+    until 1 March 2026 is the difference between a correct answer and a good
+    one.
+  expected_document_ids: [refunds-and-disputes, policy-archive-2024]
+  expected_evidence_spans:
+    - doc_id: refunds-and-disputes
+      quote: "Merchants have **7 calendar days** from notification to submit evidence."
+      heading_path: [Disputes, "Responding to a dispute (representment)"]
+    - doc_id: policy-archive-2024
+      quote: "Merchants have **5 calendar days** from dispute notification to submit evidence."
+      heading_path: ["Dispute representment window - 5 calendar days"]
+  forbidden_or_unsupported_claims:
+    - "yes, 5 days is correct (confirms a superseded value the user proposed)"
+  expected_abstention_behaviour: answer
+  scoring_notes: >-
+    The user asserts the superseded value in the question itself, which is the
+    hardest version of this test: the model must contradict a stated premise
+    that is also retrievable and was true until recently. Sycophantic agreement
+    is the designed failure, and it is a different mechanism from the passive
+    version confusion in T-01.
+  split: test
+
+- id: C-03
+  category: citation_stress
+  question: A $500 payment was disputed. I represented it and lost. Break down every fee with its source.
+  answerable: true
+  reference_answer: >-
+    Three fees. The original transaction fee of $14.80 (2.9% + $0.30) is
+    retained, per Pricing and Transaction Fees. A $15.00 dispute fee applies and
+    is non-refundable regardless of outcome, and a $25.00 representment fee
+    applies for submitting evidence, both per Refunds and Disputes. Total fees
+    $54.80, plus the $500 returned to the cardholder.
+  required_facts:
+    - fact_id: fee.card.standard
+      matcher: {kind: numeric, value: 14.80, unit: usd, tolerance: 0.02}
+    - fact_id: fee.dispute
+      matcher: {kind: numeric, value: 15, unit: usd, tolerance: 0.01}
+    - fact_id: fee.chargeback_representment
+      matcher: {kind: numeric, value: 25, unit: usd, tolerance: 0.01}
+  acceptable_answer_notes: >-
+    All three fees required, each attributed to the document that owns it. The
+    question explicitly asks for sources, so an unattributed but arithmetically
+    correct answer is incomplete.
+  expected_document_ids: [pricing-and-fees, refunds-and-disputes]
+  expected_evidence_spans:
+    - doc_id: pricing-and-fees
+      quote: "The standard rate for a successful card transaction is **2.9% + $0.30**"
+      heading_path: [Card payments]
+    - doc_id: refunds-and-disputes
+      quote: "A **$15.00** dispute fee is charged per dispute."
+      heading_path: [Disputes, What a dispute costs]
+    - doc_id: refunds-and-disputes
+      quote: "Representment costs **$25.00** per submission."
+      heading_path: [Disputes, "Responding to a dispute (representment)"]
+  forbidden_or_unsupported_claims:
+    - "one citation covering all three fees, which span two documents"
+    - "omitting the representment fee despite being told a representment happened"
+  expected_abstention_behaviour: answer
+  scoring_notes: >-
+    Three claims, three distinct spans, two documents, and the question demands
+    attribution explicitly. This makes citation precision and recall fully
+    separable: an answer can cite correctly for two fees and fabricate for the
+    third, which a per-answer citation list cannot represent at all. Contrast
+    with M-04, which needs the same arithmetic but does not ask for sources --
+    the pair isolates citation binding from retrieval and computation.
+  split: dev

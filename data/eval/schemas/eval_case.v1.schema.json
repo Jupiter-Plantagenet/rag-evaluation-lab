@@ -140,7 +140,7 @@
             "value": { "type": "number" },
             "tolerance": { "type": "number", "minimum": 0, "default": 0 },
             "unit": {
-              "enum": ["percent", "usd", "days", "business_days", "hours", "minutes", "count", "rps", "years"]
+              "enum": ["percent", "usd", "days", "business_days", "hours", "minutes", "seconds", "count", "rps", "years"]
             }
           }
         },

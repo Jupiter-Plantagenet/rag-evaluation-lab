@@ -532,3 +532,21 @@ gaps:
   - id: gap.acquiring_bank
     topic: "which banks or card networks NovaPay partners with"
     probe_terms: ["acquiring bank", "partner bank", "sponsor bank"]
+
+  - id: gap.chargeback_protection
+    topic: "a chargeback protection or fraud guarantee product"
+    probe_terms: ["chargeback protection", "chargeback insurance", "fraud guarantee"]
+    notes: >-
+      fraud-controls.md is highly retrievable for this and explicitly says Radar
+      "does not guarantee any fraud rate" -- so the corpus contains a statement
+      that is adjacent, relevant, and the opposite of what the question hopes
+      for. Correct behaviour is to say no such product is documented, not to
+      infer one from the existence of Radar.
+
+  - id: gap.sandbox_data_reset
+    topic: "how to reset or clear test-mode data"
+    probe_terms: ["reset test data", "clear test data", "sandbox reset", "wipe test"]
+    notes: >-
+      api-authentication.md describes test mode at length without ever saying how
+      to reset it. A plausible, mundane operational question that the
+      documentation simply does not answer -- the most realistic kind of gap.
