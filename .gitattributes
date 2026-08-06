@@ -1,0 +1,27 @@
+# Normalise to LF in the repository. Development happens on Windows and CI runs
+# on Ubuntu; without this, every file round-trips as a whole-file diff and the
+# corpus checksums in the run manifests would differ by platform -- which would
+# quietly break the reproducibility claim rather than the build.
+* text=auto eol=lf
+
+# Corpus and dataset files are hashed. Their bytes must be identical everywhere.
+*.md   text eol=lf
+*.yaml text eol=lf
+*.yml  text eol=lf
+*.json text eol=lf
+*.jsonl text eol=lf
+*.txt  text eol=lf
+*.py   text eol=lf
+*.toml text eol=lf
+*.cff  text eol=lf
+*.jinja text eol=lf
+
+# Binary -- never touch.
+*.npy   binary
+*.faiss binary
+*.png   binary
+*.gz    binary
+*.ico   binary
+
+# Locks are generated; collapse them in review diffs.
+requirements/lock/*.txt linguist-generated=true

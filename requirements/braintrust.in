@@ -1,0 +1,5 @@
+﻿# Optional tracing sink. Light: no torch, no pydantic, no provider SDKs.
+# Verified 2026-08-06 against https://pypi.org/pypi/braintrust/json (0.32.0,
+# released 2026-08-05). Pinned exactly because the SDK is pre-1.0, where minor
+# bumps are permitted to break.
+braintrust==0.32.0

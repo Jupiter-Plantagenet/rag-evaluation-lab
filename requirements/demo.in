@@ -1,0 +1,4 @@
+﻿# Local demo inspector (rag-eval demo). Loopback-only, never deployed.
+fastapi==0.115.0
+uvicorn==0.30.5
+httpx==0.28.1

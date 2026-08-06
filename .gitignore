@@ -1,0 +1,58 @@
+# --- secrets -----------------------------------------------------------------
+.env
+.env.*
+!.env.example
+.env.braintrust
+*.key
+*.pem
+
+# --- python ------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+
+# --- test / type / lint caches -----------------------------------------------
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# --- generated artifacts ------------------------------------------------------
+# Run outputs are reproducible from the committed cache fixtures + configs.
+# The frozen "paper run" under runs/frozen/ IS committed -- see docs/reproduction.md.
+runs/*
+!runs/frozen/
+!runs/.gitkeep
+
+# The live cache can reach hundreds of MB. The curated CI replay subset under
+# tests/fixtures/cache/ IS committed and is budgeted at <2 MB.
+cache/
+
+# Vector indexes are rebuilt from the corpus + a manifest hash; never committed.
+data/index/
+*.faiss
+
+# The public-document corpus is FETCHED, never redistributed. See
+# scripts/fetch_sqlite_docs.py and docs/corpora.md for the licence basis.
+data/corpus/sqlite/
+
+# --- reports ------------------------------------------------------------------
+# reports/ IS committed -- it is the deliverable. Only scratch output is ignored.
+reports/scratch/
+
+# --- os / editor --------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/*
+!.vscode/extensions.json

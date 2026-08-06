@@ -1,0 +1,3 @@
+﻿# Generation and judging. Import is lazy and the client is constructed only when
+# a cache miss actually requires a call, so this installs cleanly with no key.
+google-genai==1.69.0

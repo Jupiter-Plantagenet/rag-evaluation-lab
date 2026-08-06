@@ -1,0 +1,32 @@
+cff-version: 1.2.0
+title: "RAG Evaluation Lab: Grounding, Citations and Regression Testing"
+message: "If you refer to this work, please cite it as below."
+type: software
+authors:
+  - family-names: Akor
+    given-names: George
+repository-code: "https://github.com/Jupiter-Plantagenet/rag-evaluation-lab"
+abstract: >-
+  A self-directed research-engineering case study in evaluating document-grounded
+  retrieval-augmented generation. The repository implements an inspectable
+  evaluation and regression-testing harness rather than a chatbot: it separates
+  retrieval, answer, grounding/citation and system metrics instead of reporting a
+  blended quality score; keeps deterministic metrics apart from model-assisted
+  ones and publishes grader-agreement figures for the latter; captures structured
+  per-case traces; classifies failures under a fixed taxonomy; and converts
+  confirmed failures into regression tests that run offline with no model
+  credentials. A deliberately simple baseline pipeline is compared against an
+  improved pipeline whose interventions were selected from an observed failure
+  distribution on a development split and evaluated on a held-out split frozen
+  beforehand. Evaluated on one synthetic corpus with one embedding model and one
+  generation model; it is a case study, not a benchmark.
+keywords:
+  - retrieval-augmented generation
+  - evaluation
+  - groundedness
+  - citation verification
+  - regression testing
+  - reproducibility
+license: MIT
+version: 0.1.0
+date-released: "2026-08-06"

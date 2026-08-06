@@ -1,0 +1,68 @@
+# Licence and provenance — NovaPay synthetic corpus
+
+## This corpus is fiction
+
+**NovaPay does not exist.** It is an invented payment-processing company created
+solely so that a retrieval system can be evaluated against documents whose ground
+truth is fully known.
+
+Every fact in this corpus is synthetic:
+
+- No real company, product, service, or person is described.
+- No real customer data, transaction data, or personal information is present, and
+  none ever was — the corpus was authored from scratch, not derived from any real
+  source.
+- Fee rates, limits, error codes, dates, country lists, and policy text are
+  invented to create specific, measurable retrieval difficulties. They are
+  **not** advice, and they do not describe how any real payment processor works.
+- Domains such as `novapay.io` and contact details such as
+  `support@novapay.io` are placeholders. They are not intended to resolve, and
+  they must not be contacted.
+
+Resemblance to any real company's documentation is a consequence of using
+realistic industry vocabulary, and is not intentional.
+
+## Why it is deliberately awkward
+
+Unlike an ordinary demo knowledge base, this corpus is built to make retrieval
+*fail in specific, diagnosable ways*. It contains, by design:
+
+- near-miss **distractor** passages that lexically resemble a query without
+  answering it;
+- facts split across documents so some questions require **multi-hop** reasoning;
+- **superseded policy versions** kept alongside current ones, both explicitly
+  dated, so temporal confusion becomes measurable;
+- genuinely **ambiguous** questions whose correct answer is a request for
+  clarification;
+- deliberate **gaps** — topics a reasonable person would expect to be covered and
+  which are not — so that abstention can be tested rather than assumed.
+
+`fact_ledger.yaml` is the authoritative source for every fact asserted anywhere in
+these documents. Where prose and ledger disagree, the ledger is correct and the
+prose is a bug; a test enforces this.
+
+## Licence
+
+Copyright (c) 2026 George Akor.
+
+Licensed under the **Creative Commons Attribution 4.0 International Licence
+(CC BY 4.0)**: https://creativecommons.org/licenses/by/4.0/
+
+You are free to share and adapt this material for any purpose, including
+commercially, provided you give appropriate credit, link to the licence, and
+indicate if changes were made.
+
+The **source code** in this repository is licensed separately under MIT — see the
+repository-root `LICENSE`.
+
+## Provenance
+
+Approximately 24 seed facts (the fee structure, the `PAY_001`–`PAY_003` error
+codes, plan-tier names, payout timing, and the fraud-scoring product name) derive
+from `data/sample_kb.txt` in the author's earlier `llm-support-agent` project.
+That material is also the author's own work and is relicensed here under CC BY 4.0.
+
+Everything else — the document structure, the front matter, the distractors, the
+multi-hop chains, the version history, and roughly 95% of the prose — was written
+new for this repository. See `docs/source-project-audit.md` §16 for the full
+reuse decision and its reasoning.
