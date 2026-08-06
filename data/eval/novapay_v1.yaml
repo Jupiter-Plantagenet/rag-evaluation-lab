@@ -1,0 +1,1145 @@
+# NovaPay evaluation dataset v1
+#
+# 34 cases. Authored against data/corpus/novapay/, validated against
+# schemas/eval_case.v1.schema.json, and cross-validated against
+# fact_ledger.yaml -- every `fact_id` must exist, every `quote` must resolve to a
+# verbatim substring of the named document, and every `gap_id` must name a
+# declared gap.
+#
+# AUTHORING PROCEDURE (documented because the dataset is the experiment)
+#
+#   Pass 1 -- design. Cases were derived from the ledger's designed difficulties
+#     (distractors, multihop_chains, ambiguity_group, superseded, gaps) BEFORE
+#     any pipeline existed. No case was written by looking at an output.
+#   Pass 2 -- grounding. For each case, the evidence was located in the corpus by
+#     hand and quoted verbatim. A case whose evidence could not be located was
+#     rewritten or dropped, not guessed at.
+#   Pass 3 -- adversarial re-read. Each case re-read asking "could a reasonable
+#     person answer this differently and still be right?". Where yes, either
+#     acceptable_answer_notes was widened or the case became `ambiguous`.
+#   Pass 4 -- unanswerability audit. Every unanswerable case was checked against
+#     the gap list AND by searching the corpus for its topic, so that
+#     unanswerable means "designed to be absent" rather than "I did not find it".
+#
+# SPLIT: 19 dev / 15 test, stratified by category (see split_manifest.yaml).
+# The test split is loadable only via an explicit --final flag and every access
+# is logged. Interventions were chosen from dev failures only.
+#
+# n=15 on the held-out split is small. Most metric differences will have
+# bootstrap confidence intervals that cross zero, and are reported as "no
+# measurable difference" rather than as improvements. This is a stated
+# limitation, not a defect to be hidden by rounding.
+
+dataset_id: novapay_v1
+schema_version: 1
+corpus_id: novapay
+authored: "2026-08-06"
+author: George Akor
+
+cases:
+
+# ===========================================================================
+# DIRECT FACTUAL (10) -- one fact, one document, no reasoning required.
+# The floor. If these fail, nothing else is interpretable.
+# ===========================================================================
+
+- id: F-01
+  category: factual
+  question: What does NovaPay charge per card transaction?
+  answerable: true
+  reference_answer: >-
+    On the Starter plan NovaPay charges 2.9% + $0.30 per successful card
+    transaction. Pro-plan merchants pay 2.5% + $0.30.
+  required_facts:
+    - fact_id: fee.card.standard
+      matcher:
+        kind: all_of
+        matchers:
+          - {kind: numeric, value: 2.9, unit: percent}
+          - {kind: numeric, value: 0.30, unit: usd, tolerance: 0.001}
+  acceptable_answer_notes: >-
+    Mentioning only the Starter rate is acceptable -- the question does not
+    specify a plan. Stating the rate without the $0.30 fixed component is NOT
+    acceptable: it is a materially wrong quote, not a partial one.
+  expected_document_ids: [pricing-and-fees]
+  expected_evidence_spans:
+    - doc_id: pricing-and-fees
+      quote: "The standard rate for a successful card transaction is **2.9% + $0.30**"
+      heading_path: [Card payments]
+  forbidden_or_unsupported_claims:
+    - "1.0% (that is the currency-conversion fee, a designed distractor)"
+    - "$15.00 (that is the dispute fee, a designed distractor)"
+  expected_abstention_behaviour: answer
+  scoring_notes: >-
+    Baseline sanity check. Two distractors sit within the same document family:
+    the 1.0% conversion fee is in the same document, and the $15 dispute fee is
+    in another document that also discusses per-payment costs.
+  split: dev
+
+- id: F-02
+  category: factual
+  question: How long do standard payouts take?
+  answerable: true
+  reference_answer: Standard payouts arrive T+2 business days after funds become available.
+  required_facts:
+    - fact_id: payout.standard_delay
+      matcher:
+        kind: any_of
+        matchers:
+          - {kind: literal, value: "T+2"}
+          - {kind: regex, pattern: "two business days"}
+  acceptable_answer_notes: >-
+    "T+2 business days" or "two business days" both correct. Noting that the
+    first payout on a new account is held longer is a bonus, not a requirement.
+  expected_document_ids: [payout-schedules]
+  expected_evidence_spans:
+    - doc_id: payout-schedules
+      quote: "Standard payouts arrive **T+2 business days** after the funds become available."
+      heading_path: [Standard payouts]
+  forbidden_or_unsupported_claims:
+    - "T+7 (that applies only to the first payout on a new account)"
+    - "T+14 (superseded policy, retired 2026-01-10)"
+  expected_abstention_behaviour: answer
+  scoring_notes: >-
+    Tests whether retrieval pulls the general rule or one of the two exceptions
+    that surround it in the same document.
+  split: dev
+
+- id: F-03
+  category: factual
+  question: What header do I use to authenticate against the API?
+  answerable: true
+  reference_answer: >-
+    A Bearer token in the Authorization header, for example
+    "Authorization: Bearer sk_live_...".
+  required_facts:
+    - fact_id: api.auth_scheme
+      matcher:
+        kind: all_of
+        matchers:
+          - {kind: literal, value: "Authorization"}
+          - {kind: literal, value: "Bearer"}
+  acceptable_answer_notes: Showing the header format is a plus but not required.
+  expected_document_ids: [api-authentication]
+  expected_evidence_spans:
+    - doc_id: api-authentication
+      quote: "Authenticate with a **Bearer token in the `Authorization` header**"
+      heading_path: [Authentication]
+  forbidden_or_unsupported_claims:
+    - "NovaPay-Signature (that is the webhook signature header, a designed distractor)"
+    - "HTTP Basic authentication (explicitly not supported)"
+  expected_abstention_behaviour: answer
+  scoring_notes: >-
+    Citation-adjacent distractor: NovaPay-Signature is also a header, is also
+    security-related, and lives in a different document.
+  split: dev
+
+- id: F-04
+  category: factual
+  question: What algorithm are webhook signatures computed with?
+  answerable: true
+  reference_answer: >-
+    HMAC-SHA256, over the string "{timestamp}.{raw_body}", keyed with the
+    endpoint's signing secret and hex-encoded.
+  required_facts:
+    - fact_id: webhook.signature_algorithm
+      matcher:
+        kind: any_of
+        matchers:
+          - {kind: literal, value: "HMAC-SHA256"}
+          - {kind: regex, pattern: "HMAC[ -]?SHA[ -]?256"}
+  acceptable_answer_notes: Describing the signed payload construction is a plus.
+  expected_document_ids: [webhook-delivery]
+  expected_evidence_spans:
+    - doc_id: webhook-delivery
+      quote: "`v1` is an **HMAC-SHA256** of the string"
+      heading_path: [Signature verification]
+  forbidden_or_unsupported_claims: []
+  expected_abstention_behaviour: answer
+  scoring_notes: Straightforward single-fact lookup; a floor case.
+  split: test
+
+- id: F-05
+  category: factual
+  question: How long are transaction records kept?
+  answerable: true
+  reference_answer: Transaction records are retained for 7 years from the transaction date.
+  required_facts:
+    - fact_id: retention.transaction_records
+      matcher: {kind: numeric, value: 7, unit: years}
+  acceptable_answer_notes: >-
+    Must be 7 years specifically. The same document lists 90-day and 30-day
+    periods for other categories.
+  expected_document_ids: [data-retention]
+  expected_evidence_spans:
+    - doc_id: data-retention
+      quote: "Transaction records are retained for **7 years** from the transaction date."
+      heading_path: [Retention periods, "Transaction records - 7 years"]
+  forbidden_or_unsupported_claims:
+    - "90 days (that is API request logs)"
+    - "30 days (that is webhook delivery logs)"
+  expected_abstention_behaviour: answer
+  scoring_notes: >-
+    Chunk-boundary probe. data-retention.md holds four different periods within
+    a few hundred words; a chunk split between the table and the prose can
+    easily surface the wrong one with full confidence.
+  split: dev
+
+- id: F-06
+  category: factual
+  question: What is the default risk score above which a transaction is blocked?
+  answerable: true
+  reference_answer: >-
+    By default, transactions scoring 75 or above are blocked. Scores of 50 to 74
+    are held for manual review.
+  required_facts:
+    - fact_id: fraud.default_block_threshold
+      matcher: {kind: numeric, value: 75, unit: count}
+  acceptable_answer_notes: >-
+    Mentioning the 50-74 review band is a plus. Noting the threshold is
+    adjustable is also correct.
+  expected_document_ids: [fraud-controls]
+  expected_evidence_spans:
+    - doc_id: fraud-controls
+      quote: "transactions scoring **75 or above are blocked** outright"
+      heading_path: [Default thresholds]
+  forbidden_or_unsupported_claims:
+    - "50 (that is the review threshold, not the block threshold)"
+  expected_abstention_behaviour: answer
+  scoring_notes: >-
+    Two adjacent numbers in one table, distinguished only by which action they
+    trigger. Tests precision of extraction, not retrieval.
+  split: test
+
+- id: F-07
+  category: factual
+  question: What is the API rate limit on the Starter plan?
+  answerable: true
+  reference_answer: 100 requests per second.
+  required_facts:
+    - fact_id: api.rate_limit.starter
+      matcher:
+        kind: all_of
+        matchers:
+          - {kind: numeric, value: 100, unit: rps}
+          - {kind: regex, pattern: "per second|req/s|rps"}
+  acceptable_answer_notes: >-
+    Noting that the limit is per account rather than per key is a plus. Quoting
+    the Pro limit as well is acceptable.
+  expected_document_ids: [api-authentication]
+  expected_evidence_spans:
+    - doc_id: api-authentication
+      quote: "| Starter | **100 requests per second** |"
+      heading_path: [Rate limits]
+  forbidden_or_unsupported_claims:
+    - "1,000 req/s (that is the Pro limit)"
+  expected_abstention_behaviour: answer
+  scoring_notes: >-
+    The value is restated in subscription-plans.md as "100 req/s". Either
+    document is a defensible citation, but api-authentication is authoritative --
+    this is the softer half of the citation-authority test.
+  split: dev
+
+- id: F-08
+  category: factual
+  question: How many countries does NovaPay support?
+  answerable: true
+  reference_answer: 45 countries, across North America, Europe, and Asia-Pacific.
+  required_facts:
+    - fact_id: region.supported_count
+      matcher: {kind: numeric, value: 45, unit: count}
+  acceptable_answer_notes: >-
+    Noting that availability depends on where the merchant is established, not
+    the customer, is a plus.
+  expected_document_ids: [regional-restrictions]
+  expected_evidence_spans:
+    - doc_id: regional-restrictions
+      quote: "NovaPay supports merchants established in **45 countries**"
+      heading_path: []
+    - doc_id: product-overview
+      quote: "NovaPay supports merchants in **45 countries**"
+      authoritative: false
+  forbidden_or_unsupported_claims:
+    - "120 (that is the fiat currency count)"
+    - "15 (that is the cryptocurrency count)"
+  expected_abstention_behaviour: answer
+  scoring_notes: >-
+    Seeded from the predecessor corpus, where it was the single most-asked demo
+    question. Now surrounded by two other counts in the same sentence.
+  split: test
+
+- id: F-09
+  category: factual
+  question: How long does a rotated API key stay valid?
+  answerable: true
+  reference_answer: >-
+    The old key remains valid for 24 hours after rotation, so a deployment can
+    roll out without downtime. Use Revoke instead if you need it invalid
+    immediately.
+  required_facts:
+    - fact_id: api.key_rotation_grace
+      matcher: {kind: numeric, value: 24, unit: hours}
+  acceptable_answer_notes: >-
+    Distinguishing Rotate from Revoke is a plus and is the practically important
+    part of the answer.
+  expected_document_ids: [api-authentication]
+  expected_evidence_spans:
+    - doc_id: api-authentication
+      quote: "**the old key remains valid for 24 hours**"
+      heading_path: [API keys, Key rotation]
+  forbidden_or_unsupported_claims: []
+  expected_abstention_behaviour: answer
+  scoring_notes: >-
+    "24 hours" appears three times in the corpus with different referents (key
+    rotation grace, idempotency window, review-queue auto-release). Tests
+    whether the retrieved context disambiguates or merely matches the number.
+  split: dev
+
+- id: F-10
+  category: factual
+  question: What is the minimum payout amount?
+  answerable: true
+  reference_answer: >-
+    $25.00. Balances below that do not generate a payout and roll into the next
+    cycle.
+  required_facts:
+    - fact_id: payout.minimum
+      matcher: {kind: numeric, value: 25, unit: usd, tolerance: 0.001}
+  acceptable_answer_notes: Explaining the roll-forward behaviour is a plus.
+  expected_document_ids: [payout-schedules]
+  expected_evidence_spans:
+    - doc_id: payout-schedules
+      quote: "The minimum payout is **$25.00**."
+      heading_path: [Payout minimum]
+  forbidden_or_unsupported_claims: []
+  expected_abstention_behaviour: answer
+  scoring_notes: Floor case. Should pass on both pipelines; a failure here indicates a real regression.
+  split: test
+
+# ===========================================================================
+# MULTI-HOP (5) -- evidence deliberately split across documents.
+# Schema enforces >= 2 expected documents.
+# ===========================================================================
+
+- id: M-01
+  category: multi_hop
+  source_chain_id: chain.refund_true_cost
+  question: If I refund a $100 card payment in full, how much am I actually out of pocket?
+  answerable: true
+  reference_answer: >-
+    $3.20. NovaPay charges nothing to issue the refund, but the original
+    transaction fee of 2.9% + $0.30 ($3.20 on $100) is not returned.
+  required_facts:
+    - fact_id: fee.refund
+      matcher: {kind: regex, pattern: "no (refund )?fee|free|charges nothing|\\$0"}
+    - fact_id: fee.card.standard
+      matcher: {kind: numeric, value: 3.20, unit: usd, tolerance: 0.01}
+  acceptable_answer_notes: >-
+    The arithmetic must land on $3.20. Saying "you lose the original fee"
+    without computing it is incomplete but not wrong.
+  expected_document_ids: [refunds-and-disputes, pricing-and-fees]
+  expected_evidence_spans:
+    - doc_id: refunds-and-disputes
+      quote: "**NovaPay charges nothing to issue a refund.**"
+      heading_path: [Refunds, What a refund costs]
+    - doc_id: refunds-and-disputes
+      quote: "**the original transaction fee is not returned**"
+      heading_path: [Refunds, What a refund costs]
+    - doc_id: pricing-and-fees
+      quote: "The standard rate for a successful card transaction is **2.9% + $0.30**"
+      authoritative: true
+  forbidden_or_unsupported_claims:
+    - "$0 (treats the free refund as the whole answer)"
+    - "$100 (treats the refunded principal as a loss)"
+  expected_abstention_behaviour: answer
+  scoring_notes: >-
+    The designed trap is stopping at hop one. "Refunds are free" is retrievable
+    from a single chunk and is a fluent, confident, wrong answer.
+  split: dev
+
+- id: M-02
+  category: multi_hop
+  source_chain_id: chain.eea_high_value
+  question: Can a merchant in Germany accept a single payment of $8,000?
+  answerable: true
+  reference_answer: >-
+    No. Germany is in the EEA, where the single-transaction ceiling is $5,000
+    rather than the $10,000 default, so an $8,000 payment would be declined.
+  required_facts:
+    - fact_id: limit.single_transaction.eea
+      matcher: {kind: numeric, value: 5000, unit: usd, tolerance: 1}
+    - fact_id: limit.single_transaction.default
+      matcher: {kind: regex, pattern: "\\bno\\b|cannot|declined|not permitted|exceeds"}
+  acceptable_answer_notes: >-
+    Must answer "no". Naming the EEA ceiling is required; mentioning the
+    $10,000 default it overrides is a plus. Suggesting a bank transfer, which is
+    not subject to the ceiling, is a bonus.
+  expected_document_ids: [regional-restrictions, account-limits]
+  expected_evidence_spans:
+    - doc_id: regional-restrictions
+      quote: "| European Economic Area | **$5,000** | SCA step-up thresholds |"
+      heading_path: [Regional transaction ceilings]
+    - doc_id: account-limits
+      quote: "The default maximum for a single transaction is **$10,000**."
+      heading_path: [Single-transaction limits]
+  forbidden_or_unsupported_claims:
+    - "Yes, the limit is $10,000 (the designed failure -- correct default, wrong region)"
+  expected_abstention_behaviour: answer
+  scoring_notes: >-
+    Requires knowing Germany is in the EEA, which the corpus never states --
+    it is world knowledge the model must supply. Deliberate: it tests whether
+    the system combines retrieved evidence with general knowledge, or refuses.
+    Either behaviour is defensible; the failure is answering "yes, $10,000".
+  split: dev
+
+- id: M-03
+  category: multi_hop
+  source_chain_id: chain.first_money_timing
+  question: I signed up today. When will I actually receive my first payout?
+  answerable: true
+  reference_answer: >-
+    Roughly 8 to 9 calendar days. Verification usually completes within 24 hours
+    (up to 5 business days if manual review is triggered), then the first payout
+    is held to T+7 business days. You also need a $25 minimum balance.
+  required_facts:
+    - fact_id: limit.kyc_approval_window
+      matcher: {kind: numeric, value: 24, unit: hours}
+    - fact_id: payout.first_payout_delay
+      matcher:
+        kind: any_of
+        matchers:
+          - {kind: literal, value: "T+7"}
+          - {kind: regex, pattern: "seven business days"}
+  acceptable_answer_notes: >-
+    Both components required. An answer of "T+2" alone is wrong -- that is the
+    steady-state schedule, not the first payout.
+  expected_document_ids: [account-limits, payout-schedules]
+  expected_evidence_spans:
+    - doc_id: account-limits
+      quote: "Verification is completed **within 24 hours for most accounts**"
+      heading_path: [Account approval and KYC]
+    - doc_id: payout-schedules
+      quote: "**The first payout on a new account is held until T+7 business days.**"
+      heading_path: [First payout on a new account]
+  forbidden_or_unsupported_claims:
+    - "T+2 (the steady-state schedule, not the first payout)"
+    - "T+14 (superseded 2026-01-10)"
+  expected_abstention_behaviour: answer
+  scoring_notes: >-
+    Three-hop, and the superseded T+14 value is present in the corpus as a
+    distractor. Tests multi-hop and version-awareness simultaneously.
+  split: test
+
+- id: M-04
+  category: multi_hop
+  source_chain_id: chain.disputed_transaction_cost
+  question: A $200 payment was disputed and I lost. What did that cost me in total?
+  answerable: true
+  reference_answer: >-
+    $221.10 against the original $200 sale: you lose the $200 disputed amount,
+    the $6.10 transaction fee (2.9% + $0.30) is retained, and a $15.00
+    non-refundable dispute fee applies. Net position is -$21.10 relative to
+    never having taken the payment.
+  required_facts:
+    - fact_id: fee.dispute
+      matcher: {kind: numeric, value: 15, unit: usd, tolerance: 0.01}
+    - fact_id: fee.card.standard
+      matcher: {kind: numeric, value: 6.10, unit: usd, tolerance: 0.01}
+  acceptable_answer_notes: >-
+    Either framing of the total (-$21.10 net, or $221.10 gross outflow) is
+    acceptable provided both fee components appear and the arithmetic is right.
+    Omitting the $25 representment fee is correct here -- the merchant lost, but
+    the question does not say they represented.
+  expected_document_ids: [refunds-and-disputes, pricing-and-fees]
+  expected_evidence_spans:
+    - doc_id: refunds-and-disputes
+      quote: "A **$15.00** dispute fee is charged per dispute."
+      heading_path: [Disputes, What a dispute costs]
+    - doc_id: pricing-and-fees
+      quote: "The standard rate for a successful card transaction is **2.9% + $0.30**"
+  forbidden_or_unsupported_claims:
+    - "$200 (ignores both fees)"
+    - "includes the $25 representment fee without being told a representment happened"
+  expected_abstention_behaviour: answer
+  scoring_notes: >-
+    Tests over-inclusion as well as under-inclusion. refunds-and-disputes.md
+    contains a nearly identical worked example, so a system that retrieves it
+    can do well; one that retrieves only the fee table must do arithmetic.
+  split: test
+
+- id: M-05
+  category: multi_hop
+  source_chain_id: chain.webhook_giveup
+  question: My webhook endpoint was down for two days. Can I still get those events?
+  answerable: true
+  reference_answer: >-
+    Not by redelivery -- retries stop 32 hours and 36 minutes after the first
+    failure, so a two-day outage exhausts them. You can backfill from
+    GET /v1/events, but webhook delivery logs are only retained for 30 days.
+  required_facts:
+    - fact_id: webhook.total_retry_window
+      matcher:
+        kind: any_of
+        matchers:
+          - {kind: regex, pattern: "32 hours"}
+          - {kind: regex, pattern: "retries (are )?exhausted|no longer retried|given up"}
+    - fact_id: retention.webhook_delivery_logs
+      matcher: {kind: numeric, value: 30, unit: days}
+  acceptable_answer_notes: >-
+    Must convey that two days exceeds the retry window. Recommending the events
+    API is the practically useful half of the answer.
+  expected_document_ids: [webhook-delivery, data-retention]
+  expected_evidence_spans:
+    - doc_id: webhook-delivery
+      quote: "**The total retry window is 32 hours and 36 minutes**"
+      heading_path: [Delivery and retries, Retry schedule]
+    - doc_id: data-retention
+      quote: "**Webhook delivery logs** | **30 days** |"
+      heading_path: [Retention periods]
+  forbidden_or_unsupported_claims:
+    - "Yes, they will be redelivered automatically (false after 32h36m)"
+    - "90 days (that is API request logs, not delivery logs)"
+  expected_abstention_behaviour: answer
+  scoring_notes: >-
+    The 90/30-day distinction is the trap. Both are retention periods in one
+    document, one paragraph apart.
+  split: dev
+
+# ===========================================================================
+# COMPARISON / AGGREGATION (4) -- requires arithmetic or set reasoning.
+# ===========================================================================
+
+- id: A-01
+  category: aggregation
+  question: At what monthly volume does the Pro plan become cheaper than Starter?
+  answerable: true
+  reference_answer: >-
+    About $12,250 per month in card volume. Pro costs $49/month and saves 0.4
+    percentage points (2.9% to 2.5%), so $49 / 0.004 = $12,250.
+  required_facts:
+    - fact_id: plan.pro_price
+      matcher: {kind: numeric, value: 12250, unit: usd, tolerance: 250}
+  acceptable_answer_notes: >-
+    Any figure in the $12,000-$12,500 range with correct working. The $0.30
+    fixed component is identical on both plans and correctly ignored.
+  expected_document_ids: [subscription-plans]
+  expected_evidence_spans:
+    - doc_id: subscription-plans
+      quote: "$49.00 / 0.004 = $12,250"
+      heading_path: [Pro, When Pro pays for itself]
+  forbidden_or_unsupported_claims:
+    - "$49 (confuses the monthly fee with the break-even volume)"
+  expected_abstention_behaviour: answer
+  scoring_notes: >-
+    The corpus shows the working, so this is retrievable rather than
+    genuinely computed. Kept deliberately as a control: if a pipeline fails
+    A-01 but passes A-02, the deficit is retrieval, not arithmetic.
+  split: dev
+
+- id: A-02
+  category: aggregation
+  question: How much would a $10,000 payment cost me on a card versus a bank transfer?
+  answerable: true
+  reference_answer: >-
+    $290.30 on a card (2.9% + $0.30) versus $5.00 by bank transfer, which is
+    capped at $5.00 despite the 1.0% rate. The bank transfer is $285.30 cheaper.
+  required_facts:
+    - fact_id: fee.card.standard
+      matcher: {kind: numeric, value: 290.30, unit: usd, tolerance: 0.5}
+    - fact_id: fee.bank_transfer
+      matcher: {kind: numeric, value: 5, unit: usd, tolerance: 0.01}
+  acceptable_answer_notes: >-
+    Both figures required. The cap is the point -- an answer of $100 (1% of
+    $10,000, uncapped) is the designed arithmetic failure.
+  expected_document_ids: [pricing-and-fees]
+  expected_evidence_spans:
+    - doc_id: pricing-and-fees
+      quote: "a $10,000 bank transfer costs $5.00 where the same amount on a card would cost"
+      heading_path: [Bank transfers]
+  forbidden_or_unsupported_claims:
+    - "$100 for the bank transfer (ignores the $5.00 cap)"
+  expected_abstention_behaviour: answer
+  scoring_notes: >-
+    Tests whether a conditional (a cap) survives retrieval and generation. Caps
+    are frequently dropped because they sit in a subordinate clause.
+  split: test
+
+- id: A-03
+  category: aggregation
+  question: How long does NovaPay keep retrying a failed webhook, in total?
+  answerable: true
+  reference_answer: >-
+    32 hours and 36 minutes from the first failure, across 6 retries at 1
+    minute, 5 minutes, 30 minutes, 2 hours, 6 hours, and 24 hours.
+  required_facts:
+    - fact_id: webhook.total_retry_window
+      matcher:
+        kind: all_of
+        matchers:
+          - {kind: numeric, value: 32, unit: hours}
+          - {kind: numeric, value: 36, unit: minutes}
+    - fact_id: webhook.retry_count
+      matcher: {kind: numeric, value: 6, unit: count}
+  acceptable_answer_notes: >-
+    The total is stated explicitly in the corpus, so this should be retrievable
+    rather than summed. Listing the schedule is a plus.
+  expected_document_ids: [webhook-delivery]
+  expected_evidence_spans:
+    - doc_id: webhook-delivery
+      quote: "**The total retry window is 32 hours and 36 minutes**"
+      heading_path: [Delivery and retries, Retry schedule]
+  forbidden_or_unsupported_claims:
+    - "7 days (that is the endpoint-disabling threshold, a different quantity)"
+  expected_abstention_behaviour: answer
+  scoring_notes: >-
+    The 7-day disable threshold is the distractor and is the more prominent
+    number in the section.
+  split: dev
+
+- id: A-04
+  category: aggregation
+  question: Which countries require enhanced due diligence and also have a reduced transaction limit?
+  answerable: true
+  reference_answer: >-
+    India and Brazil. Both appear on the enhanced-due-diligence list (with
+    Indonesia, Nigeria, and Vietnam) and both have reduced ceilings -- $2,000
+    for India and $3,000 for Brazil.
+  required_facts:
+    - fact_id: region.high_risk_review
+      matcher:
+        kind: all_of
+        matchers:
+          - {kind: literal, value: "India"}
+          - {kind: literal, value: "Brazil"}
+  acceptable_answer_notes: >-
+    Must name exactly India and Brazil. Including Indonesia, Nigeria, or
+    Vietnam is a set-intersection error -- they need EDD but retain the $10,000
+    default.
+  expected_document_ids: [regional-restrictions]
+  expected_evidence_spans:
+    - doc_id: regional-restrictions
+      quote: "**India** and **Brazil** appear on both the"
+      heading_path: [Regional transaction ceilings]
+  forbidden_or_unsupported_claims:
+    - "all five EDD countries (fails to intersect)"
+  expected_abstention_behaviour: answer
+  scoring_notes: >-
+    The corpus states the intersection explicitly in a subsection, so a system
+    that retrieves that paragraph succeeds and one that retrieves only the two
+    lists must intersect them. Expected to be the hardest aggregation case;
+    kept even if neither pipeline solves it, because a case that nothing
+    solves is what stops the dataset from being tuned to the improvement.
+  split: test
+
+# ===========================================================================
+# UNANSWERABLE (4) -- each grounded in a declared gap. Schema requires gap_id.
+# ===========================================================================
+
+- id: U-01
+  category: unanswerable
+  gap_id: gap.sla_uptime_number
+  question: What uptime does NovaPay guarantee in its SLA?
+  answerable: false
+  reference_answer: null
+  required_facts: []
+  acceptable_answer_notes: >-
+    A good answer says the documentation does not state an uptime figure, and
+    may helpfully note what IS documented (severity levels, notification
+    timings, the status page). Inventing "99.9%" or "99.99%" is the failure.
+  expected_document_ids: []
+  expected_evidence_spans:
+    - doc_id: incident-response
+      quote: "Incidents are classified **SEV1 through SEV4**."
+      heading_path: [Severity levels]
+      authoritative: false
+  forbidden_or_unsupported_claims:
+    - "99.9%"
+    - "99.99%"
+    - "any specific uptime percentage"
+  expected_abstention_behaviour: abstain
+  scoring_notes: >-
+    The strongest unanswerable case. incident-response.md is highly retrievable
+    for this query and reads like an SLA document, so retrieval will succeed
+    and the model must decline to extrapolate from adjacent, plausible content.
+    This separates "found nothing" from "found something adjacent and correctly
+    stopped".
+  split: dev
+
+- id: U-02
+  category: unanswerable
+  gap_id: gap.mobile_sdk
+  question: Is there an iOS SDK?
+  answerable: false
+  reference_answer: null
+  required_facts: []
+  acceptable_answer_notes: >-
+    Correct behaviour is to say no mobile SDK is documented, ideally noting
+    that six server-side SDKs are listed and that client-side integration is via
+    hosted checkout or browser payment elements. Claiming an iOS SDK exists is
+    the failure; so is claiming NovaPay definitively has none, which overstates
+    what absence from documentation proves.
+  expected_document_ids: []
+  expected_evidence_spans:
+    - doc_id: product-overview
+      quote: "Official server-side SDKs are published for **Python, Node.js, Ruby, Go, PHP, and\nJava**."
+      heading_path: [Integration, SDKs]
+      authoritative: false
+  forbidden_or_unsupported_claims:
+    - "Yes, there is an iOS SDK"
+    - "Swift"
+    - "Kotlin"
+  expected_abstention_behaviour: abstain
+  scoring_notes: >-
+    A retrieval hit on "SDK" is near-certain, and the retrieved list is
+    genuinely relevant but does not answer the question. Tests whether the
+    system distinguishes topical relevance from evidential sufficiency -- the
+    single most common source of confident RAG hallucination.
+  split: dev
+
+- id: U-03
+  category: unanswerable
+  gap_id: gap.tax_reporting
+  question: When does NovaPay issue a 1099-K, and what is the threshold?
+  answerable: false
+  reference_answer: null
+  required_facts: []
+  acceptable_answer_notes: >-
+    The corpus contains no tax-form information. A good answer says so and may
+    note that NovaPay explicitly does not provide tax advice, and that
+    transaction data can be exported for the merchant's own filings.
+  expected_document_ids: []
+  expected_evidence_spans: []
+  forbidden_or_unsupported_claims:
+    - "$600"
+    - "$20,000 and 200 transactions"
+    - "any 1099-K threshold"
+  expected_abstention_behaviour: abstain
+  scoring_notes: >-
+    Tests parametric leakage rather than retrieval. Real 1099-K thresholds are
+    well known to any model of this size, so the risk is answering from training
+    data rather than from the corpus -- a failure mode invisible to any metric
+    that does not have an unanswerable case to expose it.
+  split: test
+
+- id: U-04
+  category: unanswerable
+  gap_id: gap.acquiring_bank
+  question: Which acquiring bank does NovaPay use?
+  answerable: false
+  reference_answer: null
+  required_facts: []
+  acceptable_answer_notes: >-
+    Correct behaviour is to say the documentation does not name any banking
+    partner. Noting that NovaPay states it is not itself a bank is a reasonable
+    adjacent observation.
+  expected_document_ids: []
+  expected_evidence_spans: []
+  forbidden_or_unsupported_claims:
+    - "any named bank"
+  expected_abstention_behaviour: abstain
+  scoring_notes: >-
+    Low retrieval signal -- unlike U-01 and U-02, little in the corpus is
+    topically close. Included as the easy end of the abstention range so that
+    abstention performance is not measured only on hard cases.
+  split: test
+
+# ===========================================================================
+# AMBIGUOUS (3) -- schema requires expected_abstention_behaviour: clarify.
+# ===========================================================================
+
+- id: B-01
+  category: ambiguous
+  question: What is the maximum transaction size?
+  answerable: true
+  reference_answer: >-
+    It depends on where the merchant is established: $10,000 by default, but
+    $5,000 in the EEA, $3,000 in Brazil, and $2,000 in India. Which applies to
+    you?
+  required_facts:
+    - fact_id: limit.single_transaction.default
+      matcher: {kind: numeric, value: 10000, unit: usd, tolerance: 1}
+    - fact_id: limit.single_transaction.eea
+      matcher: {kind: numeric, value: 5000, unit: usd, tolerance: 1}
+  acceptable_answer_notes: >-
+    The ideal answer surfaces that the value is region-dependent and either asks
+    which region or enumerates them. Giving "$10,000" alone is the designed
+    failure: correct for most merchants, silently wrong for EEA, India, Brazil,
+    and with no signal to the reader that a condition was dropped.
+  expected_document_ids: [account-limits, regional-restrictions]
+  expected_evidence_spans:
+    - doc_id: account-limits
+      quote: "The default maximum for a single transaction is **$10,000**."
+      heading_path: [Single-transaction limits]
+    - doc_id: regional-restrictions
+      quote: "| European Economic Area | **$5,000** | SCA step-up thresholds |"
+      heading_path: [Regional transaction ceilings]
+  forbidden_or_unsupported_claims:
+    - "$10,000, stated unconditionally"
+  expected_abstention_behaviour: clarify
+  scoring_notes: >-
+    Ambiguity collapse is the failure class. Note this case is answerable:=true
+    but expects clarification -- the corpus HAS the answer, the question does
+    not specify which one is wanted. Scoring a clarification as a failed answer
+    would punish the exact behaviour being tested, which is why the schema has
+    three abstention values rather than two.
+  split: dev
+
+- id: B-02
+  category: ambiguous
+  question: How much can I process per month?
+  answerable: true
+  reference_answer: >-
+    That depends on your plan: $50,000 on Starter, $500,000 on Pro, and no fixed
+    ceiling on Enterprise. Which plan are you on?
+  required_facts:
+    - fact_id: limit.starter.monthly_volume
+      matcher: {kind: numeric, value: 50000, unit: usd, tolerance: 1}
+    - fact_id: limit.pro.monthly_volume
+      matcher: {kind: numeric, value: 500000, unit: usd, tolerance: 1}
+  acceptable_answer_notes: >-
+    Enumerating all three tiers is as good as asking which plan. Answering with
+    one tier's figure alone is the failure.
+  expected_document_ids: [account-limits]
+  expected_evidence_spans:
+    - doc_id: account-limits
+      quote: "| Starter | **$50,000 per calendar month** |"
+      heading_path: [Monthly volume limits]
+    - doc_id: account-limits
+      quote: "| Pro | **$500,000 per calendar month** |"
+      heading_path: [Monthly volume limits]
+  forbidden_or_unsupported_claims:
+    - "$50,000, stated unconditionally"
+  expected_abstention_behaviour: clarify
+  scoring_notes: >-
+    Easier than B-01 because all three values sit in one table in one document,
+    so retrieval alone often surfaces the conditionality. Included to separate
+    "the pipeline handles ambiguity" from "the pipeline retrieved a table".
+  split: test
+
+- id: B-03
+  category: ambiguous
+  question: How fast is support?
+  answerable: true
+  reference_answer: >-
+    It depends on your plan: one business day on Starter, four hours on Pro, and
+    15 minutes for P1 incidents on Enterprise. These are first-response times,
+    not resolution times. Which plan are you asking about?
+  required_facts:
+    - fact_id: support.tier1_response
+      matcher: {kind: regex, pattern: "one business day|1 business day"}
+    - fact_id: support.tier2_response
+      matcher: {kind: numeric, value: 4, unit: hours}
+  acceptable_answer_notes: >-
+    Noting these are first-response rather than resolution commitments is a
+    plus, and is the distinction the corpus emphasises.
+  expected_document_ids: [support-escalation]
+  expected_evidence_spans:
+    - doc_id: support-escalation
+      quote: "| Starter | **one business day** |"
+      heading_path: [Response commitments]
+    - doc_id: support-escalation
+      quote: "These are commitments to a **first response from a person**"
+      heading_path: [Response commitments]
+  forbidden_or_unsupported_claims:
+    - "presenting a response time as a resolution time"
+  expected_abstention_behaviour: clarify
+  scoring_notes: >-
+    Two independent ambiguities: which plan, and response versus resolution. An
+    answer can resolve one and collapse the other.
+  split: dev
+
+# ===========================================================================
+# TEMPORAL / POLICY-VERSION (2)
+# ===========================================================================
+
+- id: T-01
+  category: temporal
+  question: What is the refund window?
+  answerable: true
+  reference_answer: >-
+    120 days from the original transaction, effective 1 March 2026. Transactions
+    processed before that date remain under the previous 90-day window.
+  required_facts:
+    - fact_id: policy.refund_window
+      matcher: {kind: numeric, value: 120, unit: days}
+    - fact_id: policy.refund_window
+      matcher:
+        kind: absent
+        matcher: {kind: regex, pattern: "^[^.]*\\b90 days\\b[^.]*is the (current|refund window)"}
+  acceptable_answer_notes: >-
+    Must give 120 days as current. Mentioning the superseded 90-day window with
+    its date is a plus and shows version awareness; presenting 90 days as
+    current is the failure.
+  expected_document_ids: [refunds-and-disputes]
+  expected_evidence_spans:
+    - doc_id: refunds-and-disputes
+      quote: "Refunds may be issued **within 120 days of the original transaction**."
+      heading_path: [Refunds, Refund window]
+  forbidden_or_unsupported_claims:
+    - "90 days, presented as current policy"
+  expected_abstention_behaviour: answer
+  scoring_notes: >-
+    Both values are in the corpus, both explicitly dated, in two documents. An
+    undated question should get the current value. Answering 90 days is
+    policy_version_confusion, NOT a retrieval miss -- the evidence was found and
+    the wrong version was used. Distinguishing those two is the point of having
+    a taxonomy rather than a pass/fail.
+  split: dev
+
+- id: T-02
+  category: temporal
+  question: A customer wants a refund on a transaction from October 2025. Can I still process it?
+  answerable: true
+  reference_answer: >-
+    No. A transaction from October 2025 falls under the previous 90-day window,
+    which expired in January 2026. The current 120-day window applies only to
+    transactions processed on or after 1 March 2026.
+  required_facts:
+    - fact_id: policy.refund_window
+      matcher: {kind: numeric, value: 90, unit: days}
+    - fact_id: policy.refund_window
+      matcher: {kind: regex, pattern: "\\bno\\b|cannot|expired|too late|not possible"}
+  acceptable_answer_notes: >-
+    Must answer no, and must apply the 90-day rule rather than the current 120.
+    Explaining that the window attaches to the transaction date is the core of a
+    good answer.
+  expected_document_ids: [policy-archive-2024, refunds-and-disputes]
+  expected_evidence_spans:
+    - doc_id: policy-archive-2024
+      quote: "Refunds may be issued **within 90 days of the original transaction**."
+      heading_path: ["Refund window - 90 days"]
+    - doc_id: policy-archive-2024
+      quote: "| Before 1 March 2026 | 90 days |"
+      heading_path: ["Refund window - 90 days"]
+    - doc_id: refunds-and-disputes
+      quote: "subject to the previous 90-day window"
+      heading_path: [Refunds, Refund window]
+      authoritative: true
+  forbidden_or_unsupported_claims:
+    - "Yes, you have 120 days (applies the current policy to a prior transaction)"
+  expected_abstention_behaviour: answer
+  scoring_notes: >-
+    The inverse of T-01, and harder. The correct answer requires deliberately
+    retrieving a document marked SUPERSEDED and reasoning that it governs here.
+    A pipeline that down-weights or filters superseded documents will fail this
+    while passing T-01 -- which is exactly the trade-off worth measuring, and a
+    real risk of the improvement being considered for Phase 3.
+  split: test
+
+# ===========================================================================
+# CITATION STRESS (2)
+# ===========================================================================
+
+- id: C-01
+  category: citation_stress
+  question: Summarise everything a new Starter merchant pays in their first month.
+  answerable: true
+  reference_answer: >-
+    $0 per month for the Starter plan itself, plus 2.9% + $0.30 per card
+    transaction. Bank transfers cost 1.0% capped at $5.00 and crypto 1.5% flat.
+    Refunds are free, but disputes cost $15.00 each. Standard payouts are free,
+    though the first payout is held to T+7 business days.
+  required_facts:
+    - fact_id: plan.starter_price
+      matcher: {kind: regex, pattern: "\\$0|free|no monthly fee"}
+    - fact_id: fee.card.standard
+      matcher: {kind: numeric, value: 2.9, unit: percent}
+    - fact_id: fee.dispute
+      matcher: {kind: numeric, value: 15, unit: usd, tolerance: 0.01}
+  acceptable_answer_notes: >-
+    Need not be exhaustive, but every figure stated must be correct and must be
+    attributed to the document that owns it.
+  expected_document_ids: [subscription-plans, pricing-and-fees, refunds-and-disputes]
+  expected_evidence_spans:
+    - doc_id: subscription-plans
+      quote: "| Monthly fee | **$0 per month** |"
+      heading_path: [Plan comparison]
+    - doc_id: pricing-and-fees
+      quote: "The standard rate for a successful card transaction is **2.9% + $0.30**"
+      heading_path: [Card payments]
+    - doc_id: refunds-and-disputes
+      quote: "A **$15.00** dispute fee is charged per dispute."
+      heading_path: [Disputes, What a dispute costs]
+  forbidden_or_unsupported_claims:
+    - "a single citation covering claims drawn from three documents"
+  expected_abstention_behaviour: answer
+  scoring_notes: >-
+    Stresses claim-to-citation BINDING rather than retrieval. A correct answer
+    necessarily draws on at least three documents, so citation precision and
+    recall are separable here in a way they are not on single-fact cases. The
+    baseline's per-answer citation list will look plausible and score poorly on
+    per-claim binding, which is the measurement this case exists to produce.
+  split: dev
+
+- id: C-02
+  category: citation_stress
+  question: What is the card transaction rate, and which document is authoritative for it?
+  answerable: true
+  reference_answer: >-
+    2.9% + $0.30 on the Starter plan. Pricing and Transaction Fees is
+    authoritative; Product Overview and Subscription Plans restate it and both
+    defer to it explicitly.
+  required_facts:
+    - fact_id: fee.card.standard
+      matcher: {kind: numeric, value: 2.9, unit: percent}
+    - fact_id: fee.card.standard
+      matcher: {kind: regex, pattern: "[Pp]ricing and [Tt]ransaction [Ff]ees"}
+  acceptable_answer_notes: >-
+    The rate alone is insufficient; the question explicitly asks which document
+    governs. Citing product-overview as authoritative is wrong even though it
+    contains the correct number.
+  expected_document_ids: [pricing-and-fees]
+  expected_evidence_spans:
+    - doc_id: pricing-and-fees
+      quote: "The standard rate for a successful card transaction is **2.9% + $0.30**"
+      heading_path: [Card payments]
+      authoritative: true
+    - doc_id: product-overview
+      quote: "**Pricing and Transaction Fees** is authoritative for every rate"
+      heading_path: [Pricing at a glance]
+      authoritative: false
+  forbidden_or_unsupported_claims:
+    - "citing product-overview or subscription-plans as the authoritative source"
+  expected_abstention_behaviour: answer
+  scoring_notes: >-
+    The same value appears verbatim in three documents. Any of them satisfies a
+    naive citation-validity check, so this case is what makes
+    citation_non_authoritative measurable as distinct from citation_missing.
+    Both restating documents say in their own text which one governs, so the
+    evidence for the authority question is itself retrievable.
+  split: test
+
+# ===========================================================================
+# SPARES (4) -- broaden coverage beyond the required minimum of 30.
+# ===========================================================================
+
+- id: F-11
+  category: factual
+  question: What happens if my endpoint keeps failing? Will NovaPay turn it off?
+  answerable: true
+  reference_answer: >-
+    Yes. An endpoint that fails every delivery for 7 consecutive days is
+    disabled automatically. You are emailed at 3 and 6 days beforehand, and
+    events that occur while it is disabled are not replayed on re-enable.
+  required_facts:
+    - fact_id: webhook.disable_threshold
+      matcher: {kind: numeric, value: 7, unit: days}
+  acceptable_answer_notes: Noting the warning emails or the no-replay behaviour is a plus.
+  expected_document_ids: [webhook-delivery]
+  expected_evidence_spans:
+    - doc_id: webhook-delivery
+      quote: "An endpoint failing **every** delivery for **7 consecutive days** is disabled"
+      heading_path: [Delivery and retries, Endpoint disabling]
+  forbidden_or_unsupported_claims:
+    - "32 hours (that is the retry window, not the disabling threshold)"
+  expected_abstention_behaviour: answer
+  scoring_notes: Colloquially phrased, to test retrieval against non-documentation vocabulary.
+  split: dev
+
+- id: F-12
+  category: factual
+  question: Do I get charged if a payment is declined?
+  answerable: true
+  reference_answer: >-
+    No. Declined transactions are free, as are transactions authorised and then
+    voided before capture. Fees are incurred only on capture.
+  required_facts:
+    - fact_id: fee.card.standard
+      matcher: {kind: regex, pattern: "\\bno\\b|free|not charged|no (transaction )?fee"}
+  acceptable_answer_notes: Mentioning the void-before-capture case is a plus.
+  expected_document_ids: [pricing-and-fees]
+  expected_evidence_spans:
+    - doc_id: pricing-and-fees
+      quote: "Declined transactions are free."
+      heading_path: [Card payments]
+  forbidden_or_unsupported_claims: []
+  expected_abstention_behaviour: answer
+  scoring_notes: >-
+    Negative-fact retrieval. The answer is an absence of a charge, which is
+    stated in one short sentence and is easily lost at a chunk boundary.
+  split: test
+
+- id: M-06
+  category: multi_hop
+  question: >-
+    I am on Starter and my payments stopped after about $50,000 this month. What
+    happened, and how do I start taking payments again today?
+  answerable: true
+  reference_answer: >-
+    You hit the Starter monthly volume limit of $50,000, after which payments
+    are declined with PAY_004. To resume today, upgrade to Pro: upgrades take
+    effect immediately with the monthly fee prorated, which raises the ceiling
+    to $500,000. Otherwise the limit resets at the start of the next calendar
+    month.
+  required_facts:
+    - fact_id: limit.starter.monthly_volume
+      matcher: {kind: numeric, value: 50000, unit: usd, tolerance: 1}
+    - fact_id: plan.upgrade_timing
+      matcher: {kind: regex, pattern: "immediate|at once|straight away|prorated"}
+  acceptable_answer_notes: >-
+    Both halves are required, because the question asks two things. Identifying
+    the $50,000 ceiling answers "what happened"; only the upgrade timing answers
+    "today". Saying "wait for next month" alone is incomplete -- it does not
+    address the constraint the question actually states.
+  expected_document_ids: [account-limits, subscription-plans]
+  expected_evidence_spans:
+    - doc_id: account-limits
+      quote: "| Starter | **$50,000 per calendar month** |"
+      heading_path: [Monthly volume limits]
+    - doc_id: account-limits
+      quote: "further payments are declined with `PAY_004"
+      heading_path: [Monthly volume limits]
+    - doc_id: subscription-plans
+      quote: "Upgrades take effect **immediately, with the monthly fee prorated**"
+      heading_path: [Changing plan, Upgrading]
+  forbidden_or_unsupported_claims:
+    - "a fraud block (the evidence points to a volume limit, not risk scoring)"
+    - "wait until next month, offered as the only option"
+  expected_abstention_behaviour: answer
+  scoring_notes: >-
+    Diagnostic phrasing rather than a lookup, and genuinely two-document: the
+    cause is in account-limits, the remedy in subscription-plans, and
+    account-limits explicitly defers to it for upgrade timing. Two failure
+    classes are separable here -- retrieving only the cause is
+    incomplete_answer, while retrieving fraud-controls instead is a
+    retrieval_distractor, and "payments stopped working" is topically much
+    closer to fraud blocking than to a volume ceiling.
+  split: dev
+
+- id: A-05
+  category: aggregation
+  question: Is express payout worth it on a $2,000 payout, and can I even use it on Starter?
+  answerable: true
+  reference_answer: >-
+    Not on Starter -- express payouts are Pro and Enterprise only. On Pro it
+    would cost 0.5% of $2,000, which is $10.00, to receive the funds within 30
+    minutes instead of T+2 business days.
+  required_facts:
+    - fact_id: fee.express_payout
+      matcher: {kind: numeric, value: 10, unit: usd, tolerance: 0.01}
+    - fact_id: payout.express_delay
+      matcher: {kind: regex, pattern: "Starter|not available|Pro and Enterprise|Pro only"}
+  acceptable_answer_notes: >-
+    Both parts required: the plan eligibility and the $10.00 computation. An
+    answer that computes the fee without noting Starter ineligibility has
+    answered only half the question that was asked.
+  expected_document_ids: [payout-schedules, subscription-plans]
+  expected_evidence_spans:
+    - doc_id: payout-schedules
+      quote: "Express payouts cost an additional **0.5%** of the payout amount."
+      heading_path: [Express payouts]
+    - doc_id: payout-schedules
+      quote: "They are unavailable on the Starter plan"
+      heading_path: [Express payouts]
+    - doc_id: subscription-plans
+      quote: "and unlocks express payouts"
+      heading_path: [Pro]
+      authoritative: false
+  forbidden_or_unsupported_claims:
+    - "computing the fee without noting Starter ineligibility"
+  expected_abstention_behaviour: answer
+  scoring_notes: >-
+    A compound question. Incomplete-answer is the target failure class here
+    rather than incorrectness -- both halves are individually easy, and the
+    failure is answering only one.
+  split: test

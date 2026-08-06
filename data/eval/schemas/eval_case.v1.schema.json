@@ -1,0 +1,228 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Jupiter-Plantagenet/rag-evaluation-lab/schemas/eval_case.v1.schema.json",
+  "title": "RAG Evaluation Lab -- evaluation case, v1",
+  "description": "One evaluation case. Validated before any run; a run refuses to start against a dataset that does not conform, because a malformed case silently produces a metric rather than an error.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "category",
+    "question",
+    "answerable",
+    "expected_document_ids",
+    "expected_abstention_behaviour",
+    "split"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^(F|M|A|U|B|T|C)-[0-9]{2}$",
+      "description": "Stable identifier. The letter encodes the category so a failure list is readable without a join: F factual, M multi-hop, A aggregation/comparison, U unanswerable, B ambiguous, T temporal/version, C citation-stress."
+    },
+    "category": {
+      "enum": ["factual", "multi_hop", "aggregation", "unanswerable", "ambiguous", "temporal", "citation_stress"]
+    },
+    "question": {
+      "type": "string",
+      "minLength": 10,
+      "description": "Asked verbatim. Phrased as a merchant would actually phrase it, including the vagueness -- a question cleaned up to be easy to retrieve stops testing retrieval."
+    },
+    "answerable": {
+      "type": "boolean",
+      "description": "Whether the corpus contains sufficient evidence. False only for cases grounded in a declared gap in fact_ledger.yaml, never for a topic that merely happens to be missing."
+    },
+    "reference_answer": {
+      "type": ["string", "null"],
+      "description": "A correct answer, not the only correct answer. Used by the correctness judge as a reference, never by string equality. Null for unanswerable cases."
+    },
+    "required_facts": {
+      "type": "array",
+      "description": "Atomic assertions a complete answer must contain, each checked deterministically. This is what makes required-fact coverage a real metric rather than a judge's impression.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["fact_id", "matcher"],
+        "properties": {
+          "fact_id": {
+            "type": "string",
+            "description": "Must exist in fact_ledger.yaml. Ties the expected answer to corpus ground truth, so a corpus edit that invalidates a case is caught by cross-validation rather than by a wrong metric."
+          },
+          "matcher": { "$ref": "#/$defs/matcher" },
+          "weight": { "type": "number", "minimum": 0, "maximum": 1, "default": 1 }
+        }
+      }
+    },
+    "acceptable_answer_notes": {
+      "type": "string",
+      "description": "What varies legitimately between correct answers. Given to the judge to stop it penalising acceptable variation, and to a human reviewer as the standard actually applied."
+    },
+    "expected_document_ids": {
+      "type": "array",
+      "minItems": 0,
+      "items": { "type": "string" },
+      "description": "Documents that must be retrieved. Empty for unanswerable cases where nothing is required -- but see expected_evidence_spans, since some unanswerable cases DO expect adjacent evidence to be retrieved and then correctly declined."
+    },
+    "expected_evidence_spans": {
+      "type": "array",
+      "description": "Ground-truth evidence, anchored to SOURCE DOCUMENTS -- never to chunks. Chunk ids are a function of the chunking config, so chunk-anchored ground truth would invalidate itself the moment the improved pipeline re-chunks, and the two pipelines could not be compared on retrieval at all.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["doc_id", "quote"],
+        "properties": {
+          "doc_id": { "type": "string" },
+          "quote": {
+            "type": "string",
+            "minLength": 8,
+            "description": "Verbatim substring of the source document. Character offsets are DERIVED by locating this quote at load time rather than hand-written, because hand-written offsets rot on the first prose edit and rot silently. A quote that no longer resolves fails dataset validation loudly."
+          },
+          "heading_path": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Human orientation only; never used for matching."
+          },
+          "authoritative": {
+            "type": "boolean",
+            "default": true,
+            "description": "False where the span restates a fact owned by another document. Citing a restating document when an authoritative one exists is the citation_non_authoritative failure class."
+          }
+        }
+      }
+    },
+    "forbidden_or_unsupported_claims": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Specific wrong answers observed or anticipated -- usually the designed distractor. Naming them makes 'the model fell for the distractor' a measurement rather than an anecdote."
+    },
+    "expected_abstention_behaviour": {
+      "enum": ["answer", "abstain", "clarify"],
+      "description": "answer: the corpus supports a direct answer. abstain: the corpus cannot answer and the system should say so. clarify: the question is genuinely underspecified and the best response asks which reading is meant. Three values rather than two, because scoring a clarification as a failed answer would punish exactly the behaviour the ambiguous cases exist to reward."
+    },
+    "scoring_notes": {
+      "type": "string",
+      "description": "What this case is testing and what a marginal answer looks like. Written at authoring time, before any result, so it cannot be rationalised after seeing what the pipeline produced."
+    },
+    "split": {
+      "enum": ["dev", "test"],
+      "description": "dev is visible during development. test is loadable only via an explicit --final flag, and every access is appended to runs/.test_ledger.jsonl."
+    },
+    "source_chain_id": {
+      "type": ["string", "null"],
+      "description": "For multi-hop cases, the corresponding chain in fact_ledger.yaml multihop_chains."
+    },
+    "gap_id": {
+      "type": ["string", "null"],
+      "description": "For unanswerable cases, the declared gap in fact_ledger.yaml gaps. Required for every unanswerable case: it is what makes unanswerability a design property rather than an accident of authoring."
+    }
+  },
+  "$defs": {
+    "matcher": {
+      "description": "How a required fact is detected in a generated answer. Deterministic by construction -- no model is consulted.",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": { "const": "literal" },
+            "value": { "type": "string" },
+            "case_sensitive": { "type": "boolean", "default": false }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "description": "Numeric match with tolerance, so 2.9 percent matches '2.9%', '2.9 %' and '2.9 per cent' but not '3%'. Parsing numbers rather than strings is what lets an answer be phrased freely while still being checked exactly.",
+          "properties": {
+            "kind": { "const": "numeric" },
+            "value": { "type": "number" },
+            "tolerance": { "type": "number", "minimum": 0, "default": 0 },
+            "unit": {
+              "enum": ["percent", "usd", "days", "business_days", "hours", "minutes", "count", "rps", "years"]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "pattern"],
+          "properties": {
+            "kind": { "const": "regex" },
+            "pattern": { "type": "string" },
+            "flags": { "type": "string", "default": "i" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "matchers"],
+          "description": "Satisfied by ANY member. For facts with several equally correct spellings.",
+          "properties": {
+            "kind": { "const": "any_of" },
+            "matchers": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/matcher" } }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "matchers"],
+          "description": "Satisfied only by ALL members. For compound facts such as a rate plus its fixed component, where stating half of it is a wrong answer rather than a partial one.",
+          "properties": {
+            "kind": { "const": "all_of" },
+            "matchers": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/matcher" } }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "matcher"],
+          "description": "Satisfied when the inner matcher does NOT match. Used on temporal cases to assert the superseded value is absent.",
+          "properties": {
+            "kind": { "const": "absent" },
+            "matcher": { "$ref": "#/$defs/matcher" }
+          }
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "answerable": { "const": false } }, "required": ["answerable"] },
+      "then": {
+        "required": ["gap_id"],
+        "properties": {
+          "reference_answer": { "const": null },
+          "expected_abstention_behaviour": { "const": "abstain" }
+        },
+        "description": "An unanswerable case must name the declared gap it rests on, must have no reference answer, and must expect abstention. Together these stop 'unanswerable' from meaning 'I could not think of an answer'."
+      }
+    },
+    {
+      "if": { "properties": { "answerable": { "const": true } }, "required": ["answerable"] },
+      "then": {
+        "required": ["reference_answer", "expected_evidence_spans"],
+        "properties": {
+          "expected_document_ids": { "minItems": 1 },
+          "expected_evidence_spans": { "minItems": 1 }
+        },
+        "description": "An answerable case must say what the answer is and where the evidence lives, or retrieval cannot be scored."
+      }
+    },
+    {
+      "if": { "properties": { "category": { "const": "multi_hop" } }, "required": ["category"] },
+      "then": {
+        "properties": { "expected_document_ids": { "minItems": 2 } },
+        "description": "A multi-hop case whose evidence sits in one document is not multi-hop, whatever it is labelled."
+      }
+    },
+    {
+      "if": { "properties": { "category": { "const": "ambiguous" } }, "required": ["category"] },
+      "then": {
+        "properties": { "expected_abstention_behaviour": { "const": "clarify" } },
+        "description": "The whole point of the ambiguous cases."
+      }
+    }
+  ]
+}
