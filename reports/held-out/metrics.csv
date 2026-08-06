@@ -1,0 +1,13 @@
+metric,n_paired,baseline,improved,delta,ci_low,ci_high,significant,direction
+recall_at_1,20,0.4083,0.525,0.1167,-0.0583,0.2917,False,no measurable difference
+recall_at_3,20,0.5917,0.75,0.1583,-0.0083,0.35,False,no measurable difference
+recall_at_5,20,0.6917,0.8,0.1083,-0.0417,0.275,False,no measurable difference
+recall_at_10,20,0.6917,0.8833,0.1917,0.025,0.375,True,improved
+precision_at_5,20,0.2875,0.22,-0.0675,-0.1625,0.0126,False,no measurable difference
+ndcg_at_5,20,0.6299,0.694,0.0641,-0.0885,0.2091,False,no measurable difference
+mrr,20,0.6667,0.835,0.1683,0.0075,0.3392,True,improved
+document_recall,19,0.9211,0.9474,0.0263,0.0,0.0789,False,no measurable difference
+required_fact_coverage,19,0.7895,0.8947,0.1053,-0.0789,0.2895,False,no measurable difference
+citation_validity,16,1.0,1.0,0.0,0.0,0.0,False,no measurable difference
+citation_precision_doc,16,0.875,0.8378,-0.0372,-0.1458,0.067,False,no measurable difference
+claim_citation_coverage,22,0.7008,0.7545,0.0538,-0.1045,0.2227,False,no measurable difference

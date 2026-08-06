@@ -1,0 +1,248 @@
+{
+  "abstention": {
+    "baseline_accuracy": 0.8182,
+    "baseline_confusion": {
+      "abstain->abstain": 3,
+      "answer->abstain": 3,
+      "answer->answer": 14,
+      "clarify->answer": 1,
+      "clarify->clarify": 1
+    },
+    "improved_accuracy": 0.9091,
+    "improved_confusion": {
+      "abstain->abstain": 3,
+      "answer->abstain": 1,
+      "answer->answer": 16,
+      "clarify->answer": 1,
+      "clarify->clarify": 1
+    }
+  },
+  "baseline_run": "baseline-test-20260806T182019Z-66ee099b",
+  "counters": {
+    "forbidden_claims": {
+      "baseline": 6,
+      "improved": 6
+    },
+    "n_fabricated": {
+      "baseline": 0,
+      "improved": 0
+    },
+    "n_non_authoritative": {
+      "baseline": 4,
+      "improved": 7
+    }
+  },
+  "improved_run": "improved-test-20260806T182251Z-1e6a1bf8",
+  "latency": {
+    "baseline": {
+      "cache_hit_rate": 0.0,
+      "mean_ms": 5902.8,
+      "p50_ms": 3902.6,
+      "p95_ms": 19302.9
+    },
+    "improved": {
+      "cache_hit_rate": 0.0,
+      "mean_ms": 5485.3,
+      "p50_ms": 3800.6,
+      "p95_ms": 12906.0
+    },
+    "note": "p95 at this n is the second-worst observation, not a percentile estimate. Cached calls replay stored latency; read alongside cache_hit_rate."
+  },
+  "metrics": [
+    {
+      "baseline": 0.4083,
+      "ci_high": 0.2917,
+      "ci_low": -0.0583,
+      "delta": 0.1167,
+      "direction": "no measurable difference",
+      "improved": 0.525,
+      "metric": "recall_at_1",
+      "n_paired": 20,
+      "significant": false
+    },
+    {
+      "baseline": 0.5917,
+      "ci_high": 0.35,
+      "ci_low": -0.0083,
+      "delta": 0.1583,
+      "direction": "no measurable difference",
+      "improved": 0.75,
+      "metric": "recall_at_3",
+      "n_paired": 20,
+      "significant": false
+    },
+    {
+      "baseline": 0.6917,
+      "ci_high": 0.275,
+      "ci_low": -0.0417,
+      "delta": 0.1083,
+      "direction": "no measurable difference",
+      "improved": 0.8,
+      "metric": "recall_at_5",
+      "n_paired": 20,
+      "significant": false
+    },
+    {
+      "baseline": 0.6917,
+      "ci_high": 0.375,
+      "ci_low": 0.025,
+      "delta": 0.1917,
+      "direction": "improved",
+      "improved": 0.8833,
+      "metric": "recall_at_10",
+      "n_paired": 20,
+      "significant": true
+    },
+    {
+      "baseline": 0.2875,
+      "ci_high": 0.0126,
+      "ci_low": -0.1625,
+      "delta": -0.0675,
+      "direction": "no measurable difference",
+      "improved": 0.22,
+      "metric": "precision_at_5",
+      "n_paired": 20,
+      "significant": false
+    },
+    {
+      "baseline": 0.6299,
+      "ci_high": 0.2091,
+      "ci_low": -0.0885,
+      "delta": 0.0641,
+      "direction": "no measurable difference",
+      "improved": 0.694,
+      "metric": "ndcg_at_5",
+      "n_paired": 20,
+      "significant": false
+    },
+    {
+      "baseline": 0.6667,
+      "ci_high": 0.3392,
+      "ci_low": 0.0075,
+      "delta": 0.1683,
+      "direction": "improved",
+      "improved": 0.835,
+      "metric": "mrr",
+      "n_paired": 20,
+      "significant": true
+    },
+    {
+      "baseline": 0.9211,
+      "ci_high": 0.0789,
+      "ci_low": 0.0,
+      "delta": 0.0263,
+      "direction": "no measurable difference",
+      "improved": 0.9474,
+      "metric": "document_recall",
+      "n_paired": 19,
+      "significant": false
+    },
+    {
+      "baseline": 0.7895,
+      "ci_high": 0.2895,
+      "ci_low": -0.0789,
+      "delta": 0.1053,
+      "direction": "no measurable difference",
+      "improved": 0.8947,
+      "metric": "required_fact_coverage",
+      "n_paired": 19,
+      "significant": false
+    },
+    {
+      "baseline": 1.0,
+      "ci_high": 0.0,
+      "ci_low": 0.0,
+      "delta": 0.0,
+      "direction": "no measurable difference",
+      "improved": 1.0,
+      "metric": "citation_validity",
+      "n_paired": 16,
+      "significant": false
+    },
+    {
+      "baseline": 0.875,
+      "ci_high": 0.067,
+      "ci_low": -0.1458,
+      "delta": -0.0372,
+      "direction": "no measurable difference",
+      "improved": 0.8378,
+      "metric": "citation_precision_doc",
+      "n_paired": 16,
+      "significant": false
+    },
+    {
+      "baseline": 0.7008,
+      "ci_high": 0.2227,
+      "ci_low": -0.1045,
+      "delta": 0.0538,
+      "direction": "no measurable difference",
+      "improved": 0.7545,
+      "metric": "claim_citation_coverage",
+      "n_paired": 22,
+      "significant": false
+    }
+  ],
+  "n_cases": 22,
+  "per_category": {
+    "aggregation": {
+      "baseline_fact_coverage": 0.875,
+      "baseline_recall_at_5": 0.9167,
+      "improved_fact_coverage": 0.75,
+      "improved_recall_at_5": 0.7917,
+      "n": 4
+    },
+    "ambiguous": {
+      "baseline_fact_coverage": 1.0,
+      "baseline_recall_at_5": 0.5,
+      "improved_fact_coverage": 1.0,
+      "improved_recall_at_5": 1.0,
+      "n": 2
+    },
+    "citation_stress": {
+      "baseline_fact_coverage": 1.0,
+      "baseline_recall_at_5": 1.0,
+      "improved_fact_coverage": 1.0,
+      "improved_recall_at_5": 1.0,
+      "n": 1
+    },
+    "factual": {
+      "baseline_fact_coverage": 0.7143,
+      "baseline_recall_at_5": 0.7143,
+      "improved_fact_coverage": 1.0,
+      "improved_recall_at_5": 0.8571,
+      "n": 7
+    },
+    "multi_hop": {
+      "baseline_fact_coverage": 0.6667,
+      "baseline_recall_at_5": 0.3333,
+      "improved_fact_coverage": 0.6667,
+      "improved_recall_at_5": 0.6667,
+      "n": 3
+    },
+    "temporal": {
+      "baseline_fact_coverage": 0.75,
+      "baseline_recall_at_5": 0.5833,
+      "improved_fact_coverage": 1.0,
+      "improved_recall_at_5": 0.4167,
+      "n": 2
+    },
+    "unanswerable": {
+      "baseline_fact_coverage": null,
+      "baseline_recall_at_5": 1.0,
+      "improved_fact_coverage": null,
+      "improved_recall_at_5": 1.0,
+      "n": 3
+    }
+  },
+  "provenance": {
+    "baseline_pipeline_hash": "66ee099bcb76",
+    "bootstrap_resamples": 10000,
+    "bootstrap_seed": 20260806,
+    "corpus_manifest_sha": "5122d7bf518b0bf60d7925384edad8ca3725f01c0566e31ea85e713500451a34",
+    "dataset_id": "novapay_v1",
+    "generator_model": "gemini-3.1-flash-lite",
+    "git_sha": "b0d4fa4",
+    "improved_pipeline_hash": "1e6a1bf838ee"
+  },
+  "split": "test"
+}

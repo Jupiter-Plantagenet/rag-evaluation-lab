@@ -103,6 +103,41 @@ def cmd_run(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_compare(args: argparse.Namespace) -> int:
+    from rag_eval.reporting.compare import build_comparison, write_all
+
+    def resolve(path: str) -> Path:
+        p = Path(path)
+        return p / "trace.jsonl" if p.is_dir() else p
+
+    comparison = build_comparison(
+        resolve(args.baseline),
+        resolve(args.improved),
+        resamples=args.resamples,
+        seed=args.seed,
+    )
+    paths = write_all(comparison, Path(args.out))
+
+    print(f"comparison: {comparison.split} split, n={comparison.n_cases}\n")
+    for m in comparison.metrics:
+        ci = f"[{m.ci_low:+.3f}, {m.ci_high:+.3f}]"
+        mark = {"improved": "+", "regressed": "!", "no measurable difference": " "}.get(
+            m.direction, "?"
+        )
+        print(
+            f" {mark} {m.metric:26s} {m.baseline_mean:6.3f} -> {m.improved_mean:6.3f} "
+            f"  d={m.delta:+.3f}  {ci:>18s}  {m.direction}"
+        )
+    print()
+    for name, v in comparison.counters.items():
+        d = v["improved"] - v["baseline"]
+        print(f"   {name:26s} {v['baseline']:6d} -> {v['improved']:6d}   {d:+d}")
+    print()
+    for kind, path in paths.items():
+        print(f"wrote {kind:9s} {path}")
+    return 0
+
+
 def cmd_validate(args: argparse.Namespace) -> int:
     sys.path.insert(0, str(REPO_ROOT / "scripts"))
     from validate_corpus import check as check_corpus
@@ -160,6 +195,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     run.add_argument("--reason", default=None, help="why the held-out split is being read")
     run.set_defaults(func=cmd_run)
+
+    compare = sub.add_parser("compare", help="compare two runs with paired bootstrap CIs")
+    compare.add_argument("baseline", help="baseline run directory or trace.jsonl")
+    compare.add_argument("improved", help="improved run directory or trace.jsonl")
+    compare.add_argument("--out", default=str(REPO_ROOT / "reports" / "comparison"))
+    compare.add_argument("--resamples", type=int, default=10000)
+    compare.add_argument("--seed", type=int, default=20260806)
+    compare.set_defaults(func=cmd_compare)
 
     validate = sub.add_parser("validate", help="validate the corpus and dataset")
     validate.add_argument("--corpus", default=str(DEFAULT_CORPUS))
