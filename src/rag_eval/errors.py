@@ -90,6 +90,27 @@ class GenerationError(RagEvalError):
     """The generator failed, or returned output that could not be parsed."""
 
 
+class QuotaExhausted(GenerationError):
+    """A provider quota is exhausted in a way retrying cannot fix.
+
+    Distinct from a transient rate limit, because the remedies differ entirely:
+    a per-minute limit clears by waiting seconds, while a daily quota clears at
+    midnight and no amount of backoff will help.
+
+    Learned the hard way. A 429 for an exhausted DAILY quota still returns a
+    'retry in 40s' hint, and honouring it produces a retry loop that cannot
+    succeed -- roughly ten minutes of waiting to accomplish nothing, repeated
+    per remaining case. The circuit breaker in GeminiGenerator raises this after
+    several consecutive cases exhaust their retries, so the run stops and says
+    what remains instead of grinding.
+    """
+
+    def __init__(self, message: str, *, completed: int = 0, remaining: int = 0) -> None:
+        self.completed = completed
+        self.remaining = remaining
+        super().__init__(message)
+
+
 class CitationParseError(GenerationError):
     """Citation markers in a generated answer could not be parsed.
 

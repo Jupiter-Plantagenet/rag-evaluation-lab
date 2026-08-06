@@ -1,0 +1,93 @@
+# IMPROVED -- interventions selected from the MEASURED baseline failure
+# distribution on the dev split, not from intuition.
+#
+# Baseline dev run: baseline-dev-20260806T180859Z-66ee099b
+#   18 / 28 cases failed. Primary classes:
+#     retrieval_miss              8   F-07, M-05, A-03, B-03, C-01, F-11, M-06, A-08
+#     retrieval_partial_multihop  5   M-01, M-07, M-09, A-06, C-03
+#     unsupported_claim           2   F-01, F-15
+#     evidence_ranked_low         1   B-01
+#     policy_version_confusion    1   T-01
+#     ambiguity_collapse          1   B-04
+#
+# 13 of 18 failures (72%) are retrieval. Every intervention below targets that
+# mass. Nothing is added that the failure profile does not demand -- no
+# reranker, no query rewriting, no query decomposition. Those are defensible
+# techniques with no evidence here to justify their latency and cost, and
+# adding them would make the architecture look sophisticated while confounding
+# the measurement of what actually helped.
+#
+# Expected trade-offs, recorded BEFORE the run so they cannot be rationalised
+# afterwards:
+#   - Retrieval latency rises: BM25 scoring plus fusion over a larger candidate
+#     set, and 8 chunks packed instead of 4.
+#   - Prompt tokens roughly double, so cost per query roughly doubles.
+#   - Precision@k will likely FALL even if recall rises, because k doubled.
+#     That is a real cost and is reported, not hidden behind recall.
+#   - More context is not free for the generator: it may dilute attention and
+#     make unsupported_claim worse. F-01 and F-15 are the cases to watch.
+
+extends: baseline.yaml
+
+name: improved
+description: >-
+  Structure-aware chunking, hybrid dense+BM25 retrieval with reciprocal rank
+  fusion, top-k raised to 8, near-duplicate context removal.
+
+# INTERVENTION 1 -- structure-aware chunking.
+#
+# Motivated by: F-07, F-15, A-08.
+#   F-07 asks for the Starter API rate limit. The evidence is a table ROW
+#   (| Starter | 100 requests per second |) and fixed-size chunking split it
+#   from the header row that gives the column its meaning. recall was 0.00.
+#   A-08 needs a whole retention table read at once; the fixed chunker cut it
+#   in half, so the "longest" and "shortest" values landed in different chunks.
+#
+# Splits on Markdown headings, treats tables as atomic, merges runt sections so
+# no chunk is a bare heading, and carries the heading path into the context.
+chunker:
+  kind: markdown_structure
+  params:
+    max_chars: 1200
+    min_chars: 120
+
+# INTERVENTION 2 -- hybrid retrieval with reciprocal rank fusion.
+#
+# Motivated by: M-05, A-03, F-11 (all webhook-delivery content, all recall 0.00),
+#   and C-01.
+#   These turn on exact terms -- retry schedules, PAY_ codes, header names,
+#   NovaPay-Signature. A dense embedder maps such tokens close together
+#   regardless of which one was asked for; BM25 treats them as the rare terms
+#   they are.
+#
+# Fusion is on RANK, not score. Dense cosine is bounded and BM25 is not, so any
+# weighted sum needs a normalisation constant -- which would have to be fitted
+# on the dev set, quietly making the "no tuning on held-out data" claim false.
+# k_rrf = 60 is used as published (Cormack et al. 2009), not tuned here.
+#
+# INTERVENTION 3 -- top_k 4 -> 8.
+#
+# Motivated by: M-01, M-07, M-09, A-06, C-03 (retrieval_partial_multihop).
+#   These found SOME evidence but not all -- M-07 scored 0.33, M-09 0.50. Four
+#   slots cannot hold evidence from three documents plus the distractors that
+#   outrank it. This is the cheapest available fix and the one most directly
+#   implied by the failure class.
+retrieval:
+  kind: hybrid_rrf
+  top_k: 8
+  fetch_k: 30
+  k_rrf: 60
+
+  # INTERVENTION 4 -- near-duplicate removal.
+  #
+  # Consequence of intervention 3, not an independent idea: at k=8 the
+  # overlapping-window chunks that fixed-size chunking produces would fill
+  # slots with near-copies. Three copies of one passage waste budget and make
+  # an answer look better corroborated than the evidence warrants.
+  deduplicate: true
+  dedupe_threshold: 0.8
+
+# Generator, prompt, and seed are INHERITED UNCHANGED from baseline.yaml.
+# That is the point: the two arms differ only in retrieval, so a measured
+# difference is attributable to retrieval rather than to a prompt edit made at
+# the same time.

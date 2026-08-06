@@ -13,7 +13,7 @@ import re
 import time
 from typing import Protocol
 
-from rag_eval.errors import ConfigError, GenerationError
+from rag_eval.errors import ConfigError, GenerationError, QuotaExhausted
 from rag_eval.generation.cache import DiskCache, cache_root, is_offline, llm_cache_key
 from rag_eval.types import Completion, Usage
 
@@ -54,14 +54,18 @@ class GeminiGenerator:
     # Class-level, because the quota is per project rather than per object --
     # separate generator instances share one budget.
     _last_call_at: float = 0.0
+    # Circuit breaker state. Class-level because the quota is per project:
+    # one case failing is noise, several in a row is a spent daily budget.
+    _consecutive_exhaustions: int = 0
 
     def __init__(
         self,
         model: str = "gemini-2.5-flash",
         temperature: float = 0.0,
         max_output_tokens: int = 1024,
-        min_interval_s: float = 12.5,
-        max_retries: int = 4,
+        min_interval_s: float = 4.0,
+        max_retries: int = 3,
+        breaker_threshold: int = 3,
     ) -> None:
         self.model = model
         self.temperature = temperature
@@ -69,6 +73,7 @@ class GeminiGenerator:
         # 12.5s ~= 5 requests/minute with headroom. Overridable for paid tiers.
         self.min_interval_s = min_interval_s
         self.max_retries = max_retries
+        self.breaker_threshold = breaker_threshold
         self._client = None
 
     def _pace(self) -> None:
@@ -131,22 +136,38 @@ class GeminiGenerator:
                     raise
                 last_error = e
                 if attempt == self.max_retries:
+                    GeminiGenerator._consecutive_exhaustions += 1
+                    if GeminiGenerator._consecutive_exhaustions >= self.breaker_threshold:
+                        raise QuotaExhausted(
+                            f"{GeminiGenerator._consecutive_exhaustions} consecutive cases "
+                            f"exhausted their retries. This is a DAILY quota, not a "
+                            f"per-minute window -- the 'retry in Ns' hint above is "
+                            f"misleading and waiting will not help.\n"
+                            f"  Daily quotas reset at midnight Pacific.\n"
+                            f"  Completed work is cached, so re-running resumes where this "
+                            f"stopped and makes no calls for cases already done.\n"
+                            f"  See docs/model-budget.md for the measured limits.\n\n"
+                            # Full body, not truncated: an earlier 300-character cap
+                            # cut off the quota METRIC NAME, which was the one piece
+                            # of information that identified which limit was hit.
+                            f"{message}"
+                        ) from e
                     raise GenerationError(
-                        f"quota exhausted after {self.max_retries + 1} attempts. "
-                        f"Raise min_interval_s, or run against the cache with "
-                        f"RAG_EVAL_OFFLINE=1.\n{message[:300]}"
+                        f"quota exhausted after {self.max_retries + 1} attempts.\n{message}"
                     ) from e
 
-                # Honour the server's own hint when it gives one; it knows the
-                # window better than any backoff schedule we could invent.
+                # Honour the server's hint, but cap it. An uncapped hint on a
+                # daily quota can be arbitrarily long, and the circuit breaker
+                # above is the mechanism that actually resolves that case.
                 hint = _RETRY_HINT_RE.search(message)
-                delay = float(hint.group(1)) + 1.0 if hint else 15.0 * (2**attempt)
+                delay = min(float(hint.group(1)) + 1.0, 65.0) if hint else 15.0 * (2**attempt)
                 print(f"    quota hit; waiting {delay:.0f}s (attempt {attempt + 1})", flush=True)
                 time.sleep(delay)
         else:  # pragma: no cover - loop always breaks or raises
             raise GenerationError(str(last_error))
 
         elapsed = (time.perf_counter() - started) * 1000.0
+        GeminiGenerator._consecutive_exhaustions = 0  # a success clears the breaker
 
         u = resp.usage_metadata
         return Completion(

@@ -36,7 +36,10 @@ generator:
   kind: gemini
   prompt_template: answer_with_citations.jinja
   params:
-    model: gemini-2.5-flash
+    # Pinned, never a -latest alias: an alias resolves to different weights
+    # over time, so a 'reproducible' run would silently change next month.
+    # gemini-2.5-flash's free daily quota is exhausted; see docs/model-budget.md.
+    model: gemini-3.1-flash-lite
     temperature: 0.0
     max_output_tokens: 1024
 
@@ -44,6 +47,6 @@ evaluation:
   hit_coverage_threshold: 0.5
   recall_at_k: [1, 3, 5, 10]
   judge_enabled: true
-  judge_model: gemini-2.5-flash
+  judge_model: gemini-3.5-flash-lite
   judge_temperature: 0.0
   bootstrap_resamples: 10000
