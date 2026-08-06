@@ -1,0 +1,534 @@
+# NovaPay fact ledger -- the authoritative source for every fact in this corpus.
+#
+# WRITTEN BEFORE ANY PROSE, DELIBERATELY.
+#
+# If the prose were written first and the ledger derived from it afterwards, a
+# number invented while drafting would become "ground truth" by virtue of having
+# been written down, and no downstream test could ever catch it: the corpus, the
+# expected answers, and the metrics would all agree on the same wrong value.
+# Writing the ledger first makes the prose checkable against something.
+#
+# Invariants enforced by tests/unit/test_fact_ledger.py and
+# scripts/validate_corpus.py:
+#   1. Every `value` here appears verbatim in its `authoritative_doc`.
+#   2. Every document listed in `restated_in` contains the value too, and is
+#      marked as restating rather than authoritative.
+#   3. Exactly one document is authoritative for each fact.
+#   4. Superseded facts carry both values, both dates, and disjoint validity.
+#   5. Every `gap` topic appears in NO document (this is what makes the
+#      unanswerable cases principled rather than accidental).
+#
+# EVERYTHING BELOW IS FICTION. See LICENSE in this directory.
+
+meta:
+  corpus_id: novapay
+  version: 1.0.0
+  authored: "2026-08-06"
+  currency: USD
+  # The in-world "today". Temporal cases are written relative to this, so the
+  # corpus does not silently change meaning as real time passes.
+  as_of: "2026-06-01"
+
+# ---------------------------------------------------------------------------
+# PRICING
+# ---------------------------------------------------------------------------
+facts:
+
+  - id: fee.card.standard
+    value: "2.9% + $0.30"
+    unit: per successful card transaction
+    authoritative_doc: pricing-and-fees
+    restated_in: [product-overview, subscription-plans]
+    notes: Seeded from the predecessor corpus.
+
+  - id: fee.card.pro
+    value: "2.5% + $0.30"
+    unit: per successful card transaction on the Pro plan
+    authoritative_doc: pricing-and-fees
+    restated_in: [subscription-plans]
+
+  - id: fee.bank_transfer
+    value: "1.0%, capped at $5.00"
+    unit: per bank transfer
+    authoritative_doc: pricing-and-fees
+
+  - id: fee.crypto
+    value: "1.5% flat"
+    unit: per crypto settlement
+    authoritative_doc: pricing-and-fees
+
+  - id: fee.currency_conversion
+    value: "1.0%"
+    unit: on the converted amount
+    authoritative_doc: pricing-and-fees
+    # DISTRACTOR PAIR: sits next to fee.card.standard and is the wrong answer to
+    # "what does NovaPay charge on an international card payment?"
+    distractor_for: [fee.card.standard]
+
+  - id: fee.dispute
+    value: "$15.00"
+    unit: per dispute, non-refundable even if the dispute is won
+    authoritative_doc: refunds-and-disputes
+    # DISTRACTOR PAIR: the phrase "dispute fee" lexically resembles
+    # "transaction fee" and lives in a different document.
+    distractor_for: [fee.card.standard]
+
+  - id: fee.refund
+    value: "$0.00"
+    unit: NovaPay charges nothing to issue a refund
+    authoritative_doc: refunds-and-disputes
+    notes: >-
+      The original transaction's 2.9% + $0.30 is NOT returned. This distinction
+      is the target of a multi-hop case: the refund is free, the original fee is
+      not refunded, and the two facts live in different sections.
+
+  - id: fee.express_payout
+    value: "0.5%"
+    unit: additional, on the payout amount
+    authoritative_doc: payout-schedules
+    restated_in: [subscription-plans]
+
+  - id: fee.chargeback_representment
+    value: "$25.00"
+    unit: per representment submitted
+    authoritative_doc: refunds-and-disputes
+
+# ---------------------------------------------------------------------------
+# PLANS
+# ---------------------------------------------------------------------------
+  - id: plan.starter_price
+    value: "$0 per month"
+    authoritative_doc: subscription-plans
+    restated_in: [product-overview]
+
+  - id: plan.pro_price
+    value: "$49 per month"
+    authoritative_doc: subscription-plans
+
+  - id: plan.enterprise_price
+    value: "custom, contracted annually"
+    authoritative_doc: subscription-plans
+
+  - id: plan.downgrade_timing
+    value: "at the end of the current billing period"
+    authoritative_doc: subscription-plans
+
+  - id: plan.upgrade_timing
+    value: "immediately, with the monthly fee prorated"
+    authoritative_doc: subscription-plans
+
+# ---------------------------------------------------------------------------
+# PAYOUTS
+# ---------------------------------------------------------------------------
+  - id: payout.standard_delay
+    value: "T+2 business days"
+    authoritative_doc: payout-schedules
+    restated_in: [product-overview]
+
+  - id: payout.express_delay
+    value: "within 30 minutes"
+    authoritative_doc: payout-schedules
+    requires_plan: Pro
+
+  - id: payout.first_payout_delay
+    value: "T+7 business days"
+    unit: for the first payout on a new account only
+    authoritative_doc: payout-schedules
+    # AGGREGATION TARGET: "when does a brand-new Starter merchant see their first
+    # money?" requires combining this with account-limits' KYC approval window.
+
+  - id: payout.minimum
+    value: "$25.00"
+    unit: balances below this roll into the next payout cycle
+    authoritative_doc: payout-schedules
+
+  - id: payout.schedule_options
+    value: "daily, weekly, or monthly"
+    authoritative_doc: payout-schedules
+
+# ---------------------------------------------------------------------------
+# ACCOUNT LIMITS  (ambiguity source: limits vary by BOTH plan AND region)
+# ---------------------------------------------------------------------------
+  - id: limit.starter.monthly_volume
+    value: "$50,000 per calendar month"
+    authoritative_doc: account-limits
+    ambiguity_group: volume_limit
+
+  - id: limit.pro.monthly_volume
+    value: "$500,000 per calendar month"
+    authoritative_doc: account-limits
+    ambiguity_group: volume_limit
+
+  - id: limit.enterprise.monthly_volume
+    value: "no fixed ceiling; set contractually"
+    authoritative_doc: account-limits
+    ambiguity_group: volume_limit
+
+  - id: limit.single_transaction.default
+    value: "$10,000"
+    authoritative_doc: account-limits
+    ambiguity_group: transaction_limit
+
+  - id: limit.single_transaction.eea
+    value: "$5,000"
+    unit: EEA merchants, due to SCA step-up thresholds
+    authoritative_doc: regional-restrictions
+    ambiguity_group: transaction_limit
+    notes: >-
+      AMBIGUITY DESIGN: "what is the maximum single transaction?" has two
+      correct answers depending on region, and the two values live in two
+      different documents. A good answer asks which region; a poor one picks
+      $10,000 silently.
+
+  - id: limit.kyc_approval_window
+    value: "within 24 hours for most accounts"
+    value_components: ["within 24 hours for most accounts", "up to 5 business days"]
+    authoritative_doc: account-limits
+
+# ---------------------------------------------------------------------------
+# API
+# ---------------------------------------------------------------------------
+  - id: api.auth_scheme
+    value: "Bearer token in the Authorization header"
+    authoritative_doc: api-authentication
+
+  - id: api.key_prefix.live
+    value: "sk_live_"
+    authoritative_doc: api-authentication
+
+  - id: api.key_prefix.test
+    value: "sk_test_"
+    authoritative_doc: api-authentication
+
+  - id: api.key_rotation_grace
+    value: "24 hours"
+    unit: old key remains valid after rotation
+    authoritative_doc: api-authentication
+
+  - id: api.rate_limit.starter
+    value: "100 requests per second"
+    aliases: ["100 req/s"]
+    authoritative_doc: api-authentication
+    restated_in: [subscription-plans]
+
+  - id: api.rate_limit.pro
+    value: "1,000 requests per second"
+    aliases: ["1,000 req/s"]
+    authoritative_doc: api-authentication
+    restated_in: [subscription-plans]
+
+  - id: api.rate_limit.response_code
+    value: "HTTP 429 with a Retry-After header"
+    authoritative_doc: api-authentication
+
+  - id: api.sdk_languages
+    value: "Python, Node.js, Ruby, Go, PHP, and Java"
+    authoritative_doc: product-overview
+
+  - id: api.test_card.success
+    value: "4242424242424242"
+    authoritative_doc: api-authentication
+
+  - id: api.test_card.decline
+    value: "4000000000000002"
+    authoritative_doc: api-authentication
+
+  - id: error.pay_001
+    value: "PAY_001"
+    value_components: ["PAY_001", "insufficient funds"]
+    authoritative_doc: api-authentication
+
+  - id: error.pay_002
+    value: "PAY_002"
+    value_components: ["PAY_002", "card expired"]
+    authoritative_doc: api-authentication
+
+  - id: error.pay_003
+    value: "PAY_003"
+    value_components: ["PAY_003", "issuer declined, do not retry"]
+    authoritative_doc: api-authentication
+
+# ---------------------------------------------------------------------------
+# WEBHOOKS
+# ---------------------------------------------------------------------------
+  - id: webhook.signature_header
+    value: "NovaPay-Signature"
+    authoritative_doc: webhook-delivery
+
+  - id: webhook.signature_algorithm
+    value: "HMAC-SHA256"
+    authoritative_doc: webhook-delivery
+
+  - id: webhook.tolerance_window
+    value: "5 minutes"
+    unit: timestamp tolerance before a signature is rejected as stale
+    authoritative_doc: webhook-delivery
+
+  - id: webhook.retry_count
+    value: "6 times"
+    aliases: ["6 attempts"]
+    authoritative_doc: webhook-delivery
+
+  - id: webhook.retry_schedule
+    value: "1 minute, 5 minutes, 30 minutes, 2 hours, 6 hours, 24 hours"
+    value_components: ["1 minute", "5 minutes", "30 minutes", "2 hours", "6 hours", "24 hours"]
+    authoritative_doc: webhook-delivery
+    # AGGREGATION TARGET: "how long until NovaPay gives up?" requires summing
+    # this schedule (= 32 hours 36 minutes after the first failure).
+
+  - id: webhook.total_retry_window
+    value: "32 hours and 36 minutes"
+    unit: from first failure to final attempt
+    authoritative_doc: webhook-delivery
+    derived_from: [webhook.retry_schedule]
+
+  - id: webhook.disable_threshold
+    value: "7 consecutive days"
+    authoritative_doc: webhook-delivery
+
+  - id: webhook.timeout
+    value: "10 seconds"
+    unit: endpoint must return 2xx within this
+    authoritative_doc: webhook-delivery
+
+# ---------------------------------------------------------------------------
+# FRAUD
+# ---------------------------------------------------------------------------
+  - id: fraud.product_name
+    value: "NovaPay Radar"
+    authoritative_doc: fraud-controls
+    restated_in: [product-overview]
+
+  - id: fraud.score_range
+    value: "0 to 100"
+    authoritative_doc: fraud-controls
+
+  - id: fraud.default_block_threshold
+    value: "75"
+    authoritative_doc: fraud-controls
+
+  - id: fraud.default_review_threshold
+    value: "50"
+    authoritative_doc: fraud-controls
+
+  - id: fraud.review_queue_sla
+    value: "auto-released after 24 hours"
+    authoritative_doc: fraud-controls
+
+# ---------------------------------------------------------------------------
+# COMPLIANCE / REGIONS
+# ---------------------------------------------------------------------------
+  - id: compliance.pci_level
+    value: "PCI DSS Level 1"
+    authoritative_doc: product-overview
+
+  - id: compliance.saq_scope
+    value: "SAQ-A"
+    unit: when using hosted checkout
+    authoritative_doc: product-overview
+
+  - id: region.supported_count
+    value: "45 countries"
+    authoritative_doc: regional-restrictions
+    restated_in: [product-overview]
+
+  - id: region.currency_count
+    value: "120 fiat currencies and 15 cryptocurrencies"
+    authoritative_doc: product-overview
+
+  - id: region.prohibited
+    value: "Cuba, Iran, North Korea, Syria, and the Crimea, Donetsk and Luhansk regions"
+    authoritative_doc: regional-restrictions
+
+  - id: region.high_risk_review
+    value: "Brazil, India, Indonesia, Nigeria, and Vietnam"
+    unit: onboarding requires enhanced due diligence
+    authoritative_doc: regional-restrictions
+    # AGGREGATION TARGET: "which countries need enhanced due diligence AND have a
+    # reduced transaction limit?" -- requires intersecting two lists in two
+    # documents. Expected to be hard; kept deliberately.
+
+# ---------------------------------------------------------------------------
+# DATA RETENTION
+# ---------------------------------------------------------------------------
+  - id: retention.transaction_records
+    value: "7 years"
+    authoritative_doc: data-retention
+
+  - id: retention.api_logs
+    value: "90 days"
+    authoritative_doc: data-retention
+
+  - id: retention.webhook_delivery_logs
+    value: "30 days"
+    authoritative_doc: data-retention
+    # DISTRACTOR: three different retention periods in one document means a
+    # chunk-boundary failure produces a confidently wrong answer.
+
+  - id: retention.deletion_sla
+    value: "within 30 days"
+    authoritative_doc: data-retention
+
+# ---------------------------------------------------------------------------
+# SUPPORT
+# ---------------------------------------------------------------------------
+  - id: support.tier1_response
+    value: "one business day"
+    authoritative_doc: support-escalation
+
+  - id: support.tier2_response
+    value: "four hours"
+    unit: Pro and Enterprise only
+    authoritative_doc: support-escalation
+
+  - id: support.p1_response
+    value: "15 minutes for P1, 24/7"
+    unit: Enterprise only
+    authoritative_doc: support-escalation
+
+  - id: support.channels
+    value: "email, in-dashboard live chat, and phone"
+    authoritative_doc: support-escalation
+
+# ---------------------------------------------------------------------------
+# INCIDENT RESPONSE
+# ---------------------------------------------------------------------------
+  - id: incident.severity_levels
+    value: "SEV1 through SEV4"
+    authoritative_doc: incident-response
+
+  - id: incident.sev1_notification
+    value: "within 30 minutes of declaration"
+    authoritative_doc: incident-response
+
+  - id: incident.postmortem_deadline
+    value: "5 business days"
+    authoritative_doc: incident-response
+
+  - id: incident.status_page
+    value: "status.novapay.io"
+    authoritative_doc: incident-response
+
+# ---------------------------------------------------------------------------
+# SUPERSEDED POLICIES
+#
+# Both versions are present in the corpus, both explicitly dated, with disjoint
+# validity windows. This is what makes `policy_version_confusion` a measurable
+# failure class rather than a hypothetical one.
+# ---------------------------------------------------------------------------
+superseded:
+
+  - id: policy.refund_window
+    current:
+      value: "within 120 days of the original transaction"
+      effective_from: "2026-03-01"
+      doc: refunds-and-disputes
+    previous:
+      value: "within 90 days of the original transaction"
+      effective_from: "2024-01-15"
+      effective_until: "2026-02-28"
+      doc: policy-archive-2024
+    notes: >-
+      A question asked without a date should get the CURRENT value. A question
+      asked about a transaction from 2025 should get 90 days. Answering "90 days"
+      to an undated question is policy_version_confusion, not a retrieval miss --
+      the evidence was found, the wrong version was used.
+
+  - id: policy.payout_hold_new_merchants
+    current:
+      value: "T+7 business days"
+      effective_from: "2026-01-10"
+      doc: payout-schedules
+    previous:
+      value: "T+14 business days"
+      effective_from: "2023-06-01"
+      effective_until: "2026-01-09"
+      doc: policy-archive-2024
+
+# ---------------------------------------------------------------------------
+# MULTI-HOP CHAINS
+# Facts deliberately split so a correct answer must combine documents.
+# ---------------------------------------------------------------------------
+multihop_chains:
+
+  - id: chain.refund_true_cost
+    question_shape: "If I refund a $100 card payment, how much am I out of pocket?"
+    hops:
+      - {fact: fee.refund, doc: refunds-and-disputes}
+      - {fact: fee.card.standard, doc: pricing-and-fees}
+    expected_reasoning: >-
+      Refund itself is free, but the original $3.20 (2.9% + $0.30) is not
+      returned, so the merchant is out $103.20 total.
+
+  - id: chain.first_money_timing
+    question_shape: "I just signed up. When do I actually receive my first payout?"
+    hops:
+      - {fact: limit.kyc_approval_window, doc: account-limits}
+      - {fact: payout.first_payout_delay, doc: payout-schedules}
+
+  - id: chain.eea_high_value
+    question_shape: "Can a German merchant take a single $8,000 payment?"
+    hops:
+      - {fact: limit.single_transaction.eea, doc: regional-restrictions}
+      - {fact: limit.single_transaction.default, doc: account-limits}
+    expected_reasoning: >-
+      No -- the EEA limit of $5,000 applies and overrides the $10,000 default.
+      Answering "yes, the limit is $10,000" is the designed failure.
+
+  - id: chain.webhook_giveup
+    question_shape: "My endpoint was down all day. Did I lose the events?"
+    hops:
+      - {fact: webhook.retry_schedule, doc: webhook-delivery}
+      - {fact: webhook.disable_threshold, doc: webhook-delivery}
+      - {fact: retention.webhook_delivery_logs, doc: data-retention}
+
+  - id: chain.disputed_transaction_cost
+    question_shape: "A $200 payment was disputed and I lost. What did that cost me?"
+    hops:
+      - {fact: fee.dispute, doc: refunds-and-disputes}
+      - {fact: fee.card.standard, doc: pricing-and-fees}
+
+  - id: chain.pro_upgrade_breakeven
+    question_shape: "At what monthly volume does upgrading to Pro pay for itself?"
+    hops:
+      - {fact: fee.card.standard, doc: pricing-and-fees}
+      - {fact: fee.card.pro, doc: pricing-and-fees}
+      - {fact: plan.pro_price, doc: subscription-plans}
+
+# ---------------------------------------------------------------------------
+# DELIBERATE GAPS
+#
+# Topics a reasonable person WOULD expect a payment processor to document, and
+# which this corpus deliberately does not cover. Unanswerable cases draw only
+# from this list, so "unanswerable" is a property of the corpus by design rather
+# than an accident of authoring.
+#
+# TESTED: scripts/validate_corpus.py asserts none of these terms appears in any
+# document. If prose drift ever covers one, the corresponding eval case becomes
+# invalid and the build fails.
+# ---------------------------------------------------------------------------
+gaps:
+  - id: gap.tax_reporting
+    topic: "1099-K / tax form issuance and thresholds"
+    probe_terms: ["1099", "tax form", "tax reporting"]
+
+  - id: gap.sla_uptime_number
+    topic: "a contractual uptime percentage (e.g. 99.99%)"
+    probe_terms: ["uptime guarantee", "99.9", "99.99", "uptime SLA"]
+    notes: >-
+      incident-response deliberately describes severity and notification WITHOUT
+      ever committing to an uptime figure. This is the strongest unanswerable
+      case: adjacent, plausible, and genuinely absent.
+
+  - id: gap.mobile_sdk
+    topic: "native iOS/Android SDKs"
+    probe_terms: ["iOS", "Android", "Swift", "Kotlin", "mobile SDK"]
+    notes: >-
+      product-overview lists six SERVER-side SDKs, so a retrieval hit on
+      "SDK" is near-certain. The correct behaviour is to retrieve that list and
+      still abstain on mobile -- which separates "found nothing" from
+      "found something adjacent and correctly declined to extrapolate".
+
+  - id: gap.acquiring_bank
+    topic: "which banks or card networks NovaPay partners with"
+    probe_terms: ["acquiring bank", "partner bank", "sponsor bank"]
