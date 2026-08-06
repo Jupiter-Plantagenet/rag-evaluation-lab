@@ -1,0 +1,49 @@
+# BASELINE -- deliberately simple, deliberately NOT broken.
+#
+# This is what a competent first RAG implementation looks like, and it is close
+# to what the predecessor project actually did: fixed-width character chunking,
+# dense-only retrieval, a fixed top-k, one generation pass.
+#
+# The distinction matters. A baseline crippled on purpose makes any improvement
+# look good and establishes nothing. Every choice here is defensible in
+# isolation; what the experiment tests is whether they hold up against a corpus
+# with distractors, multi-hop questions, superseded policies and real gaps.
+#
+# The ONE upgrade over the predecessor is the citation prompt: both pipelines
+# are asked for per-claim citations, so citation quality can be compared rather
+# than being trivially absent on one side.
+
+name: baseline
+description: Fixed-size chunking, dense-only retrieval, fixed top-k, single-pass generation.
+seed: 20260806
+
+chunker:
+  kind: fixed_size
+  params:
+    chunk_size: 500      # characters, matching the predecessor's setting
+    chunk_overlap: 50
+
+embedder:
+  kind: minilm           # all-MiniLM-L6-v2, local and deterministic
+  params: {}
+
+retrieval:
+  kind: dense            # no lexical channel, no fusion, no reranking
+  top_k: 4               # fixed for every query, regardless of confidence
+  deduplicate: false     # near-duplicate chunks are passed through as-is
+
+generator:
+  kind: gemini
+  prompt_template: answer_with_citations.jinja
+  params:
+    model: gemini-2.5-flash
+    temperature: 0.0
+    max_output_tokens: 1024
+
+evaluation:
+  hit_coverage_threshold: 0.5
+  recall_at_k: [1, 3, 5, 10]
+  judge_enabled: true
+  judge_model: gemini-2.5-flash
+  judge_temperature: 0.0
+  bootstrap_resamples: 10000

@@ -1,0 +1,21 @@
+# CI configuration -- baseline, but with the zero-download embedding backend.
+#
+# Exists so CI can run the FULL retrieval evaluation offline: no model download,
+# no HuggingFace cache, no token, no network. TF-IDF+SVD is genuinely weaker
+# than MiniLM at matching paraphrases, and nothing in the report presents CI
+# numbers as the headline result -- they exist to prove the pipeline runs and
+# the metrics compute, not to measure retrieval quality.
+
+extends: baseline.yaml
+
+name: ci_offline
+description: Baseline with TF-IDF+SVD embeddings, for credential-free CI.
+
+embedder:
+  kind: tfidf_svd
+  params:
+    dimension: 256
+    seed: 20260806
+
+evaluation:
+  judge_enabled: false   # no judge in CI: it would need a live model
