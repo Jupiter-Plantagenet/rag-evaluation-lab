@@ -1,0 +1,116 @@
+# Fixture evaluation set for the offline integration suite.
+#
+# Deliberately tiny and deliberately NOT a miniature of novapay_v1. Its job is to
+# exercise every stage of the pipeline and every branch of the metric code with
+# cases whose correct answer is obvious by inspection, so that a failing
+# integration test points at the harness rather than at a judgement call about
+# whether an answer was good.
+#
+# All four cases are marked split: dev. Nothing here touches the held-out split.
+dataset_id: fixture_v1
+cases:
+  - id: FX-01
+    category: factual
+    question: What is the standard widget unit price?
+    answerable: true
+    reference_answer: 47 credits per widget.
+    required_facts:
+      - fact_id: fixture.widget.unit_price
+        matcher:
+          kind: numeric
+          value: 47
+          unit: credits
+    acceptable_answer_notes: >-
+      Must give the current price, 47, and not the superseded 39.
+    expected_document_ids:
+      - widget-pricing
+    expected_evidence_spans:
+      - doc_id: widget-pricing
+        quote: The standard widget unit price is 47 credits per widget.
+        heading_path:
+          - Standard pricing
+        authoritative: true
+    forbidden_or_unsupported_claims:
+      - 39 credits (the superseded 2025 price)
+    expected_abstention_behaviour: answer
+    scoring_notes: >-
+      The superseded document is topically near-identical, so this case fails if
+      retrieval cannot separate current from superseded policy.
+    split: dev
+
+  - id: FX-02
+    category: aggregation
+    question: What does a 500-widget order cost per unit after the bulk discount?
+    answerable: true
+    reference_answer: 41.36 credits per unit -- 47 less 12 percent.
+    required_facts:
+      - fact_id: fixture.widget.unit_price
+        matcher:
+          kind: numeric
+          value: 47
+          unit: credits
+      - fact_id: fixture.widget.bulk_discount
+        matcher:
+          kind: numeric
+          value: 12
+          unit: percent
+    expected_document_ids:
+      - widget-pricing
+    expected_evidence_spans:
+      - doc_id: widget-pricing
+        quote: The standard widget unit price is 47 credits per widget.
+        heading_path:
+          - Standard pricing
+        authoritative: true
+      - doc_id: widget-pricing
+        quote: bulk discount of 12 percent off the
+        heading_path:
+          - Bulk orders
+        authoritative: true
+    expected_abstention_behaviour: answer
+    scoring_notes: >-
+      Two spans in two sections of one document, so span-level recall is 0.5 when
+      only one is retrieved. A binary hit-rate would score this as fully correct.
+    split: dev
+
+  - id: FX-03
+    category: unanswerable
+    gap_id: fixture.gap.carrier_identity
+    question: Which carrier does Acme Widgets use for domestic delivery?
+    answerable: false
+    reference_answer: null
+    required_facts: []
+    acceptable_answer_notes: >-
+      The shipping policy states that a single carrier is used and deliberately
+      does not name it. A correct answer says the documentation does not say.
+    expected_document_ids: []
+    expected_evidence_spans: []
+    forbidden_or_unsupported_claims:
+      - any named carrier
+    expected_abstention_behaviour: abstain
+    scoring_notes: >-
+      Retrieval metrics must be None here, never 0.0. This is the case that
+      catches "undefined averaged in as zero".
+    split: dev
+
+  - id: FX-04
+    category: factual
+    question: When are orders dispatched?
+    answerable: true
+    reference_answer: Same working day if placed before 14:00, otherwise the next working day.
+    required_facts:
+      - fact_id: fixture.shipping.dispatch_window
+        matcher:
+          kind: regex
+          pattern: 14:00|2 ?pm
+    expected_document_ids:
+      - shipping-policy
+    expected_evidence_spans:
+      - doc_id: shipping-policy
+        quote: Orders placed before 14:00 are dispatched the same working day.
+        heading_path:
+          - Dispatch
+        authoritative: true
+    expected_abstention_behaviour: answer
+    scoring_notes: Single-span single-document case; the simplest possible happy path.
+    split: dev
