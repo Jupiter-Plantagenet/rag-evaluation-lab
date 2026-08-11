@@ -37,8 +37,20 @@ class MetricComparison:
     delta: float | None
     ci_low: float | None
     ci_high: float | None
-    significant: bool
+    ci_excludes_zero: bool
     direction: str  # "improved" | "regressed" | "no measurable difference"
+
+    # NOTE ON THE FIELD NAME. This was called `significant` until the Phase-3b
+    # audit. The rename is not cosmetic. "Significant" imports a hypothesis-test
+    # meaning this procedure does not deliver: there is no null model, no p-value,
+    # and -- with twelve metrics compared at 95% -- no correction for multiple
+    # comparisons. What the field actually records is the narrow, literal fact
+    # that a 95% paired-bootstrap interval did not contain zero. Naming it after
+    # what it measures removes the reader's temptation to infer the rest.
+    #
+    # Reports generated before the rename (the frozen held-out artefacts) carry
+    # the old key. The values are identical; only the label changed. See
+    # docs/statistical-audit.md.
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -49,7 +61,7 @@ class MetricComparison:
             "delta": self.delta,
             "ci_low": self.ci_low,
             "ci_high": self.ci_high,
-            "significant": self.significant,
+            "ci_excludes_zero": self.ci_excludes_zero,
             "direction": self.direction,
         }
 
@@ -95,20 +107,24 @@ def compare_metric(
         (base_by_case[cid]["metrics"].get(metric), impr_by_case[cid]["metrics"].get(metric))
         for cid in sorted(set(base_by_case) & set(impr_by_case))
     ]
-    usable = [
-        (b, i) for b, i in pairs if isinstance(b, (int, float)) and isinstance(i, (int, float))
-    ]
+    usable = [(b, i) for b, i in pairs if isinstance(b, int | float) and isinstance(i, int | float)]
     if len(usable) < 3:
-        return MetricComparison(metric, len(usable), None, None, None, None, None, False, "insufficient data")
+        return MetricComparison(
+            metric, len(usable), None, None, None, None, None, False, "insufficient data"
+        )
 
     base = [float(b) for b, _ in usable]
     impr = [float(i) for _, i in usable]
     delta, lo, hi = paired_bootstrap(base, impr, resamples=resamples, seed=seed)
 
-    significant = not (lo <= 0.0 <= hi)
-    if not significant:
+    ci_excludes_zero = not (lo <= 0.0 <= hi)
+    if not ci_excludes_zero:
         direction = "no measurable difference"
     else:
+        # Every metric in METRICS is higher-is-better, so a positive delta is an
+        # improvement. If a lower-is-better metric is ever added, this line
+        # becomes wrong silently -- test_direction_assumes_higher_is_better
+        # pins the assumption so that addition fails loudly instead.
         direction = "improved" if delta > 0 else "regressed"
 
     return MetricComparison(
@@ -119,7 +135,7 @@ def compare_metric(
         delta=round(delta, 4),
         ci_low=round(lo, 4),
         ci_high=round(hi, 4),
-        significant=significant,
+        ci_excludes_zero=ci_excludes_zero,
         direction=direction,
     )
 
@@ -220,35 +236,71 @@ def build_comparison(
             )
         )
 
+    # Abstention accuracy is a proportion over the SAME cases in both arms, so it
+    # gets the same paired treatment as every other metric. Reporting two bare
+    # percentages invites the reader to subtract them and believe the result;
+    # at these counts a single case moves accuracy by about four points.
+    base_correct = [1.0 if base[c]["metrics"].get("abstention_correct") else 0.0 for c in shared]
+    impr_correct = [1.0 if impr[c]["metrics"].get("abstention_correct") else 0.0 for c in shared]
+    abst_delta, abst_lo, abst_hi = paired_bootstrap(
+        base_correct, impr_correct, resamples=resamples, seed=seed
+    )
+
     comparison.abstention = {
         "baseline_confusion": confusion(base),
         "improved_confusion": confusion(impr),
-        "baseline_accuracy": round(
-            sum(1 for c in shared if base[c]["metrics"].get("abstention_correct")) / len(shared), 4
-        ),
-        "improved_accuracy": round(
-            sum(1 for c in shared if impr[c]["metrics"].get("abstention_correct")) / len(shared), 4
-        ),
+        "n": len(shared),
+        "baseline_accuracy": round(sum(base_correct) / len(shared), 4),
+        "improved_accuracy": round(sum(impr_correct) / len(shared), 4),
+        "delta": round(abst_delta, 4),
+        "ci_low": round(abst_lo, 4),
+        "ci_high": round(abst_hi, 4),
+        "ci_excludes_zero": not (abst_lo <= 0.0 <= abst_hi),
     }
 
     categories = sorted({base[c]["category"] for c in shared})
     comparison.per_category = {}
     for category in categories:
         ids = [c for c in shared if base[c]["category"] == category]
-        def mean(source, metric, ids=ids):
-            vals = [
-                source[c]["metrics"].get(metric)
-                for c in ids
-                if isinstance(source[c]["metrics"].get(metric), (int, float))
+
+        def paired_means(
+            metric: str, ids: list[str] = ids
+        ) -> tuple[float | None, float | None, int]:
+            """Category means over cases BOTH arms scored, as in the main table.
+
+            Averaging each arm over its own defined cases would let the two
+            numbers in a row describe different case sets -- so a category could
+            appear to improve because one arm simply scored fewer, easier cases.
+            This does not happen in the current data (a test asserts the paired
+            and per-arm denominators agree on both splits), but a metric that is
+            only correct by luck of the data is not correct.
+            """
+            pairs = [(base[c]["metrics"].get(metric), impr[c]["metrics"].get(metric)) for c in ids]
+            usable = [
+                (b, i)
+                for b, i in pairs
+                if isinstance(b, int | float) and isinstance(i, int | float)
             ]
-            return round(sum(vals) / len(vals), 4) if vals else None
+            if not usable:
+                return None, None, 0
+            n = len(usable)
+            return (
+                round(sum(b for b, _ in usable) / n, 4),
+                round(sum(i for _, i in usable) / n, 4),
+                n,
+            )
+
+        base_recall, impr_recall, n_recall = paired_means("recall_at_5")
+        base_facts, impr_facts, n_facts = paired_means("required_fact_coverage")
 
         comparison.per_category[category] = {
             "n": len(ids),
-            "baseline_recall_at_5": mean(base, "recall_at_5"),
-            "improved_recall_at_5": mean(impr, "recall_at_5"),
-            "baseline_fact_coverage": mean(base, "required_fact_coverage"),
-            "improved_fact_coverage": mean(impr, "required_fact_coverage"),
+            "n_recall_at_5": n_recall,
+            "n_fact_coverage": n_facts,
+            "baseline_recall_at_5": base_recall,
+            "improved_recall_at_5": impr_recall,
+            "baseline_fact_coverage": base_facts,
+            "improved_fact_coverage": impr_facts,
         }
 
     def latency_stats(source: dict) -> dict[str, Any]:
@@ -294,12 +346,25 @@ def render_markdown(c: Comparison) -> str:
     a(f"- improved run: `{c.improved_run}`")
     a(f"- generator: `{c.provenance['generator_model']}`")
     a(f"- corpus: `{c.provenance['corpus_manifest_sha'][:16]}`")
-    a(f"- bootstrap: {c.provenance['bootstrap_resamples']:,} paired resamples, "
-      f"seed {c.provenance['bootstrap_seed']}")
+    a(
+        f"- bootstrap: {c.provenance['bootstrap_resamples']:,} paired resamples, "
+        f"seed {c.provenance['bootstrap_seed']}"
+    )
     a("")
-    a("All intervals are 95% paired bootstrap CIs on the per-case difference. "
-      "**An interval containing zero is reported as no measurable difference, "
-      "not as an improvement.**")
+    a(
+        "All intervals are 95% paired bootstrap CIs on the per-case difference. "
+        "**An interval containing zero is reported as no measurable difference, "
+        "not as an improvement.**"
+    )
+    a("")
+    a(
+        f"A verdict of **improved** means only that the paired-bootstrap 95% CI excluded "
+        f"zero. It is not a significance test: there is no null model, no p-value, and no "
+        f"correction for the fact that {len(c.metrics)} metrics are compared here. Under "
+        f"the global null one would expect roughly "
+        f"{len(c.metrics) * 0.05:.1f} of {len(c.metrics)} intervals to exclude zero by "
+        f"chance. Read the direction and magnitude together with the interval width."
+    )
     a("")
 
     a("## Deterministic metrics")
@@ -313,8 +378,10 @@ def render_markdown(c: Comparison) -> str:
             "regressed": "**REGRESSED**",
             "no measurable difference": "no measurable difference",
         }.get(m.direction, m.direction)
-        a(f"| {m.metric} | {m.n_paired} | {m.baseline_mean:.3f} | {m.improved_mean:.3f} "
-          f"| {m.delta:+.3f} | {ci} | {verdict} |")
+        a(
+            f"| {m.metric} | {m.n_paired} | {m.baseline_mean:.3f} | {m.improved_mean:.3f} "
+            f"| {m.delta:+.3f} | {ci} | {verdict} |"
+        )
     a("")
 
     a("## Counts (summed over cases, not averaged)")
@@ -329,30 +396,52 @@ def render_markdown(c: Comparison) -> str:
 
     a("## Abstention behaviour")
     a("")
-    a(f"Accuracy: baseline {c.abstention['baseline_accuracy']:.3f}, "
-      f"improved {c.abstention['improved_accuracy']:.3f}")
+    ab = c.abstention
+    a(
+        f"Accuracy over all {ab['n']} cases: baseline {ab['baseline_accuracy']:.3f}, "
+        f"improved {ab['improved_accuracy']:.3f}, delta {ab['delta']:+.3f} "
+        f"(95% CI [{ab['ci_low']:+.3f}, {ab['ci_high']:+.3f}] — "
+        f"{'excludes' if ab['ci_excludes_zero'] else 'contains'} zero)."
+    )
+    a("")
+    a(
+        f"One case is worth {1 / ab['n']:.3f} of this proportion, so read the interval "
+        f"rather than the difference of the two point estimates."
+    )
     a("")
     a("| expected -> observed | Baseline | Improved |")
     a("|---|---:|---:|")
     keys = sorted(set(c.abstention["baseline_confusion"]) | set(c.abstention["improved_confusion"]))
     for k in keys:
-        a(f"| `{k}` | {c.abstention['baseline_confusion'].get(k, 0)} "
-          f"| {c.abstention['improved_confusion'].get(k, 0)} |")
+        a(
+            f"| `{k}` | {c.abstention['baseline_confusion'].get(k, 0)} "
+            f"| {c.abstention['improved_confusion'].get(k, 0)} |"
+        )
     a("")
 
     a("## Per category")
     a("")
-    a("| Category | n | Base recall@5 | Impr recall@5 | Base facts | Impr facts |")
-    a("|---|---:|---:|---:|---:|---:|")
+    a(
+        "| Category | cases | n r@5 | Base recall@5 | Impr recall@5 | n facts | Base facts | Impr facts |"
+    )
+    a("|---|---:|---:|---:|---:|---:|---:|---:|")
     for name, v in sorted(c.per_category.items()):
+
         def fmt(x):
             return f"{x:.3f}" if isinstance(x, float) else "-"
-        a(f"| {name} | {v['n']} | {fmt(v['baseline_recall_at_5'])} "
-          f"| {fmt(v['improved_recall_at_5'])} | {fmt(v['baseline_fact_coverage'])} "
-          f"| {fmt(v['improved_fact_coverage'])} |")
+
+        a(
+            f"| {name} | {v['n']} | {v['n_recall_at_5']} | {fmt(v['baseline_recall_at_5'])} "
+            f"| {fmt(v['improved_recall_at_5'])} | {v['n_fact_coverage']} "
+            f"| {fmt(v['baseline_fact_coverage'])} | {fmt(v['improved_fact_coverage'])} |"
+        )
     a("")
-    a("Categories with n below about 4 cannot support an interval; their rows are "
-      "shown for completeness and should not be read as effects.")
+    a(
+        "`cases` is how many cases fall in the category; the `n` columns are how many of "
+        "them both arms scored for that metric, which is the denominator of the two means "
+        "beside it. No interval is computed per category: at these counts a bootstrap "
+        "interval would span most of the range and the rows are descriptive only."
+    )
     a("")
 
     a("## Latency")
@@ -369,11 +458,11 @@ def render_markdown(c: Comparison) -> str:
 
 
 def render_csv(c: Comparison) -> str:
-    rows = ["metric,n_paired,baseline,improved,delta,ci_low,ci_high,significant,direction"]
+    rows = ["metric,n_paired,baseline,improved,delta,ci_low,ci_high,ci_excludes_zero,direction"]
     for m in c.metrics:
         rows.append(
             f"{m.metric},{m.n_paired},{m.baseline_mean},{m.improved_mean},{m.delta},"
-            f"{m.ci_low},{m.ci_high},{m.significant},{m.direction}"
+            f"{m.ci_low},{m.ci_high},{m.ci_excludes_zero},{m.direction}"
         )
     return "\n".join(rows) + "\n"
 

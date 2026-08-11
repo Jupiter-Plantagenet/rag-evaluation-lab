@@ -8,6 +8,8 @@
 
 All intervals are 95% paired bootstrap CIs on the per-case difference. **An interval containing zero is reported as no measurable difference, not as an improvement.**
 
+A verdict of **improved** means only that the paired-bootstrap 95% CI excluded zero. It is not a significance test: there is no null model, no p-value, and no correction for the fact that 12 metrics are compared here. Under the global null one would expect roughly 0.6 of 12 intervals to exclude zero by chance. Read the direction and magnitude together with the interval width.
+
 ## Deterministic metrics
 
 | Metric | n | Baseline | Improved | Delta | 95% CI | Verdict |
@@ -35,7 +37,9 @@ All intervals are 95% paired bootstrap CIs on the per-case difference. **An inte
 
 ## Abstention behaviour
 
-Accuracy: baseline 0.750, improved 0.893
+Accuracy over all 28 cases: baseline 0.750, improved 0.893, delta +0.143 (95% CI [+0.036, +0.286] — excludes zero).
+
+One case is worth 0.036 of this proportion, so read the interval rather than the difference of the two point estimates.
 
 | expected -> observed | Baseline | Improved |
 |---|---:|---:|
@@ -47,17 +51,17 @@ Accuracy: baseline 0.750, improved 0.893
 
 ## Per category
 
-| Category | n | Base recall@5 | Impr recall@5 | Base facts | Impr facts |
-|---|---:|---:|---:|---:|---:|
-| aggregation | 4 | 0.375 | 0.500 | 0.500 | 0.750 |
-| ambiguous | 3 | 0.500 | 0.500 | 0.667 | 0.667 |
-| citation_stress | 2 | 0.167 | 0.167 | 0.500 | 0.667 |
-| factual | 9 | 0.778 | 1.000 | 0.889 | 1.000 |
-| multi_hop | 6 | 0.417 | 0.556 | 0.667 | 0.833 |
-| temporal | 1 | 1.000 | 1.000 | 1.000 | 1.000 |
-| unanswerable | 3 | 0.333 | 0.333 | - | - |
+| Category | cases | n r@5 | Base recall@5 | Impr recall@5 | n facts | Base facts | Impr facts |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| aggregation | 4 | 4 | 0.375 | 0.500 | 4 | 0.500 | 0.750 |
+| ambiguous | 3 | 3 | 0.500 | 0.500 | 3 | 0.667 | 0.667 |
+| citation_stress | 2 | 2 | 0.167 | 0.167 | 2 | 0.500 | 0.667 |
+| factual | 9 | 9 | 0.778 | 1.000 | 9 | 0.889 | 1.000 |
+| multi_hop | 6 | 6 | 0.417 | 0.556 | 6 | 0.667 | 0.833 |
+| temporal | 1 | 1 | 1.000 | 1.000 | 1 | 1.000 | 1.000 |
+| unanswerable | 3 | 3 | 0.333 | 0.333 | 0 | - | - |
 
-Categories with n below about 4 cannot support an interval; their rows are shown for completeness and should not be read as effects.
+`cases` is how many cases fall in the category; the `n` columns are how many of them both arms scored for that metric, which is the denominator of the two means beside it. No interval is computed per category: at these counts a bootstrap interval would span most of the range and the rows are descriptive only.
 
 ## Latency
 
