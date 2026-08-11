@@ -17,4 +17,4 @@ TRACE_SCHEMA_VERSION = 1
 # Distinct from __version__, which tracks the package as a distributable.
 PIPELINE_SCHEMA_VERSION = 1
 
-__all__ = ["__version__", "TRACE_SCHEMA_VERSION", "PIPELINE_SCHEMA_VERSION"]
+__all__ = ["PIPELINE_SCHEMA_VERSION", "TRACE_SCHEMA_VERSION", "__version__"]

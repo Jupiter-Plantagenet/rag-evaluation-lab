@@ -43,7 +43,7 @@ def test_all_corpus_invariants_hold() -> None:
 
 @pytest.mark.unit
 def test_corpus_files_are_utf8_without_bom() -> None:
-    for path in sorted(CORPUS_DIR.glob("*.md")) + [CORPUS_DIR / "fact_ledger.yaml"]:
+    for path in [*sorted(CORPUS_DIR.glob("*.md")), CORPUS_DIR / "fact_ledger.yaml"]:
         assert not check_encoding(path), f"{path.name} has an encoding problem"
 
 
@@ -55,7 +55,7 @@ def test_every_document_declares_itself_synthetic() -> None:
     document were ever extracted from the repo without its front matter, the only
     thing distinguishing it from genuine guidance would be this declaration.
     """
-    for doc_id, (fm, _, path) in load_docs(CORPUS_DIR).items():
+    for _doc_id, (fm, _, path) in load_docs(CORPUS_DIR).items():
         assert fm.get("synthetic") is True, f"{path.name} does not declare synthetic: true"
         assert fm.get("disclaimer"), f"{path.name} has no disclaimer"
         assert "fictional" in fm["disclaimer"].lower(), (

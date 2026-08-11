@@ -11,7 +11,7 @@ from __future__ import annotations
 import os
 import re
 import time
-from typing import Protocol
+from typing import Any, Protocol
 
 from rag_eval.errors import ConfigError, GenerationError, QuotaExhausted
 from rag_eval.generation.cache import DiskCache, cache_root, is_offline, llm_cache_key
@@ -74,7 +74,9 @@ class GeminiGenerator:
         self.min_interval_s = min_interval_s
         self.max_retries = max_retries
         self.breaker_threshold = breaker_threshold
-        self._client = None
+        # Any, not a concrete client type: google-genai is an optional dependency
+        # and this module must stay importable in CI, which installs no provider.
+        self._client: Any = None
 
     def _pace(self) -> None:
         """Space live calls so the quota is rarely hit in the first place."""
@@ -85,14 +87,14 @@ class GeminiGenerator:
         GeminiGenerator._last_call_at = time.monotonic()
 
     @property
-    def params(self) -> dict:
+    def params(self) -> dict[str, Any]:
         return {
             "temperature": self.temperature,
             "max_output_tokens": self.max_output_tokens,
             "top_p": 1.0,
         }
 
-    def _ensure_client(self):
+    def _ensure_client(self) -> Any:
         # Lazy: genai.Client(api_key=None) raises at construction, so eager
         # creation would make this module unimportable without a key.
         if self._client is not None:
@@ -113,7 +115,7 @@ class GeminiGenerator:
         self._client = genai.Client(api_key=key)
         return self._client
 
-    def generate(self, prompt: str, *, template_sha: str = "") -> Completion:
+    def generate(self, prompt: str, *, template_sha: str = "") -> Completion:  # noqa: ARG002 - Generator protocol; the cache wrapper consumes template_sha
         client = self._ensure_client()
         config = {
             "temperature": self.temperature,
@@ -130,7 +132,7 @@ class GeminiGenerator:
                     model=self.model, contents=prompt, config=config
                 )
                 break
-            except Exception as e:  # noqa: BLE001 - re-raised below if unrecoverable
+            except Exception as e:
                 message = str(e)
                 if "RESOURCE_EXHAUSTED" not in message and "429" not in message:
                     raise
@@ -203,7 +205,7 @@ class ScriptedGenerator:
         self.responses = responses
         self.model = model
 
-    def generate(self, prompt: str, *, template_sha: str = "") -> Completion:
+    def generate(self, prompt: str, *, template_sha: str = "") -> Completion:  # noqa: ARG002 - Generator protocol
         from rag_eval.generation.cache import stable_hash
 
         key = stable_hash({"prompt": prompt})
@@ -261,9 +263,9 @@ class CachedGenerator:
             )
             return self._from_record(record, cache_hit=True)
 
-        record = self.cache.get(key)
-        if record is not None:
-            return self._from_record(record, cache_hit=True)
+        cached = self.cache.get(key)
+        if cached is not None:
+            return self._from_record(cached, cache_hit=True)
 
         completion = self.inner.generate(prompt, template_sha=template_sha)
         self.cache.put(
@@ -287,7 +289,7 @@ class CachedGenerator:
         return completion
 
     @staticmethod
-    def _from_record(record: dict, *, cache_hit: bool) -> Completion:
+    def _from_record(record: dict[str, Any], *, cache_hit: bool) -> Completion:
         u = record.get("usage", {})
         return Completion(
             text=record["text"],
@@ -305,13 +307,13 @@ class CachedGenerator:
         )
 
 
-def build_generator(kind: str, **kwargs: object) -> Generator:
+def build_generator(kind: str, **kwargs: Any) -> Generator:
     if kind == "gemini":
         return GeminiGenerator(
             model=str(kwargs.get("model", "gemini-2.5-flash")),
-            temperature=float(kwargs.get("temperature", 0.0)),  # type: ignore[arg-type]
-            max_output_tokens=int(kwargs.get("max_output_tokens", 1024)),  # type: ignore[arg-type]
+            temperature=float(kwargs.get("temperature", 0.0)),
+            max_output_tokens=int(kwargs.get("max_output_tokens", 1024)),
         )
     if kind == "scripted":
-        return ScriptedGenerator(responses=dict(kwargs.get("responses", {})))  # type: ignore[arg-type]
+        return ScriptedGenerator(responses=dict(kwargs.get("responses", {})))
     raise ConfigError(f"unknown generator: {kind!r}")

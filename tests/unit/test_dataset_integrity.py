@@ -110,7 +110,9 @@ def test_unanswerable_cases_are_correctly_shaped(cases: list[dict]) -> None:
             continue
         assert c.get("gap_id"), f"{c['id']}: unanswerable without a declared gap_id"
         assert c["reference_answer"] is None, f"{c['id']}: unanswerable but has a reference answer"
-        assert c["expected_abstention_behaviour"] == "abstain", f"{c['id']}: should expect abstention"
+        assert c["expected_abstention_behaviour"] == "abstain", (
+            f"{c['id']}: should expect abstention"
+        )
         assert c["forbidden_or_unsupported_claims"], (
             f"{c['id']}: an unanswerable case must name the wrong answers it is testing for, "
             f"or a hallucination cannot be distinguished from an acceptable hedge."
@@ -128,7 +130,9 @@ def test_ambiguous_cases_expect_clarification_not_abstention(cases: list[dict]) 
     for c in cases:
         if c["category"] != "ambiguous":
             continue
-        assert c["answerable"] is True, f"{c['id']}: ambiguous cases are answerable, not unanswerable"
+        assert c["answerable"] is True, (
+            f"{c['id']}: ambiguous cases are answerable, not unanswerable"
+        )
         assert c["expected_abstention_behaviour"] == "clarify"
 
 

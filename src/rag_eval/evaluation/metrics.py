@@ -26,7 +26,7 @@ from rag_eval.types import AbstentionBehaviour, EvalCase
 # ---------------------------------------------------------------------------
 
 
-def _relevant_ranks(case: EvalCase, retrieved: list[dict], threshold: float) -> list[int]:
+def _relevant_ranks(case: EvalCase, retrieved: list[dict[str, Any]], threshold: float) -> list[int]:
     """Ranks (1-based) of retrieved chunks that cover any expected evidence span.
 
     "Covers" means the chunk's character range overlaps the evidence span by at
@@ -47,7 +47,9 @@ def _relevant_ranks(case: EvalCase, retrieved: list[dict], threshold: float) -> 
     return sorted(ranks)
 
 
-def recall_at_k(case: EvalCase, retrieved: list[dict], k: int, threshold: float) -> float | None:
+def recall_at_k(
+    case: EvalCase, retrieved: list[dict[str, Any]], k: int, threshold: float
+) -> float | None:
     """Fraction of DISTINCT expected evidence spans covered within the top k.
 
     Span-level rather than binary hit-rate: a multi-hop case needing three
@@ -73,7 +75,7 @@ def recall_at_k(case: EvalCase, retrieved: list[dict], k: int, threshold: float)
     return covered / len(spans)
 
 
-def mrr(case: EvalCase, retrieved: list[dict], threshold: float) -> float | None:
+def mrr(case: EvalCase, retrieved: list[dict[str, Any]], threshold: float) -> float | None:
     """Reciprocal rank of the FIRST relevant chunk. 0.0 if none retrieved."""
     if not [ev for ev in case.expected_evidence_spans if ev.char_start >= 0]:
         return None
@@ -81,7 +83,9 @@ def mrr(case: EvalCase, retrieved: list[dict], threshold: float) -> float | None
     return 1.0 / ranks[0] if ranks else 0.0
 
 
-def precision_at_k(case: EvalCase, retrieved: list[dict], k: int, threshold: float) -> float | None:
+def precision_at_k(
+    case: EvalCase, retrieved: list[dict[str, Any]], k: int, threshold: float
+) -> float | None:
     """Fraction of the top k that are relevant -- the context-noise measure.
 
     Reported alongside recall rather than instead of it, because they trade off:
@@ -98,7 +102,9 @@ def precision_at_k(case: EvalCase, retrieved: list[dict], k: int, threshold: flo
     return sum(1 for r in top if r["rank"] in relevant) / len(top)
 
 
-def ndcg_at_k(case: EvalCase, retrieved: list[dict], k: int, threshold: float) -> float | None:
+def ndcg_at_k(
+    case: EvalCase, retrieved: list[dict[str, Any]], k: int, threshold: float
+) -> float | None:
     """Binary-gain nDCG. Rewards ranking evidence higher, not merely retrieving it."""
     spans = [ev for ev in case.expected_evidence_spans if ev.char_start >= 0]
     if not spans:
@@ -109,7 +115,7 @@ def ndcg_at_k(case: EvalCase, retrieved: list[dict], k: int, threshold: float) -
     return dcg / ideal if ideal > 0 else 0.0
 
 
-def document_recall(case: EvalCase, retrieved: list[dict]) -> float | None:
+def document_recall(case: EvalCase, retrieved: list[dict[str, Any]]) -> float | None:
     """Did we retrieve the right DOCUMENTS, ignoring passage precision?
 
     Deliberately easier than span recall, and reported next to it. The gap
@@ -256,7 +262,9 @@ def abstention_outcome(case: EvalCase, abstained: bool, clarified: bool) -> Abst
 # ---------------------------------------------------------------------------
 
 
-def citation_metrics(case: EvalCase, citations: list[dict], claims: list[dict]) -> dict[str, Any]:
+def citation_metrics(
+    case: EvalCase, citations: list[dict[str, Any]], claims: list[dict[str, Any]]
+) -> dict[str, Any]:
     """Citation quality, split into the four things that can independently fail.
 
     - validity  : do cited labels resolve to a chunk the model was shown?
@@ -286,9 +294,12 @@ def citation_metrics(case: EvalCase, citations: list[dict], claims: list[dict]) 
         "n_resolved": len(resolved),
         "n_fabricated": len(fabricated),
         "citation_validity": (len(resolved) / len(citations)) if citations else None,
-        "citation_precision_doc": (len(on_target) / len(resolved)) if resolved and expected_docs else None,
+        "citation_precision_doc": (len(on_target) / len(resolved))
+        if resolved and expected_docs
+        else None,
         "claim_citation_coverage": (
-            len([c for c in substantive if c["claim_id"] in claims_with_citation]) / len(substantive)
+            len([c for c in substantive if c["claim_id"] in claims_with_citation])
+            / len(substantive)
         )
         if substantive
         else None,

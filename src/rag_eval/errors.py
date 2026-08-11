@@ -77,7 +77,7 @@ class CacheMissError(RagEvalError):
         super().__init__("\n".join(lines))
 
 
-class OfflineViolation(RagEvalError):
+class OfflineViolation(RagEvalError):  # noqa: N818 - reads as the condition, not a suffix ritual
     """Network access was attempted while the offline guard was active.
 
     Raised from a patched socket, so the traceback points at the exact line that
@@ -90,7 +90,7 @@ class GenerationError(RagEvalError):
     """The generator failed, or returned output that could not be parsed."""
 
 
-class QuotaExhausted(GenerationError):
+class QuotaExhausted(GenerationError):  # noqa: N818 - names the state the caller must handle
     """A provider quota is exhausted in a way retrying cannot fix.
 
     Distinct from a transient rate limit, because the remedies differ entirely:

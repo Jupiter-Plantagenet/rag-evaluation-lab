@@ -18,9 +18,10 @@ retrieval numbers computed against the wrong space.
 from __future__ import annotations
 
 import hashlib
-from typing import Protocol
+from typing import Any, Protocol
 
 import numpy as np
+from numpy.typing import NDArray
 
 from rag_eval.errors import ConfigError
 
@@ -33,14 +34,15 @@ class Embedder(Protocol):
         """Identity of the embedding function, for cache keying."""
         ...
 
-    def encode(self, texts: list[str], *, is_query: bool = False) -> np.ndarray:
+    def encode(self, texts: list[str], *, is_query: bool = False) -> NDArray[np.float32]:
         """Return an (n, d) float32 array of L2-normalised row vectors."""
         ...
 
 
-def _l2_normalise(x: np.ndarray) -> np.ndarray:
+def _l2_normalise(x: NDArray[np.float32]) -> NDArray[np.float32]:
     norms = np.linalg.norm(x, axis=1, keepdims=True)
-    return x / np.maximum(norms, 1e-12)
+    normalised: NDArray[np.float32] = x / np.maximum(norms, 1e-12)
+    return normalised
 
 
 class MiniLMEmbedder:
@@ -71,8 +73,12 @@ class MiniLMEmbedder:
     def __init__(self, model_id: str | None = None, batch_size: int = 32) -> None:
         self.model_id = model_id or self.MODEL_ID
         self.batch_size = batch_size
-        self._tokenizer = None
-        self._model = None
+        # Any, not a concrete type: transformers is a Tier-2 dependency that CI
+        # does not install, so naming its types here would make this module
+        # unimportable in exactly the environment that must import it.
+        self._tokenizer: Any = None
+        self._model: Any = None
+        self._torch: Any = None
 
     def _ensure_loaded(self) -> None:
         """Lazy, so importing this module never touches torch or the network."""
@@ -101,12 +107,12 @@ class MiniLMEmbedder:
     def fingerprint(self) -> str:
         return f"minilm:{self.model_id}:meanpool:l2"
 
-    def encode(self, texts: list[str], *, is_query: bool = False) -> np.ndarray:
+    def encode(self, texts: list[str], *, is_query: bool = False) -> NDArray[np.float32]:  # noqa: ARG002 - Embedder protocol; this backend is symmetric
         self._ensure_loaded()
         assert self._model is not None and self._tokenizer is not None
         torch = self._torch
 
-        out: list[np.ndarray] = []
+        out: list[NDArray[np.float32]] = []
         with torch.inference_mode():
             for i in range(0, len(texts), self.batch_size):
                 batch = texts[i : i + self.batch_size]
@@ -144,8 +150,8 @@ class TfidfSvdEmbedder:
     def __init__(self, dimension: int = 256, seed: int = 20260806) -> None:
         self.dimension = dimension
         self.seed = seed
-        self._vectoriser = None
-        self._svd = None
+        self._vectoriser: Any = None
+        self._svd: Any = None
         self._fit_sha = "unfitted"
 
     def fit(self, corpus_texts: list[str]) -> TfidfSvdEmbedder:
@@ -171,7 +177,7 @@ class TfidfSvdEmbedder:
     def fingerprint(self) -> str:
         return f"tfidf_svd:d{self.dimension}:seed{self.seed}:vocab{self._fit_sha}"
 
-    def encode(self, texts: list[str], *, is_query: bool = False) -> np.ndarray:
+    def encode(self, texts: list[str], *, is_query: bool = False) -> NDArray[np.float32]:  # noqa: ARG002 - Embedder protocol; this backend is symmetric
         if self._vectoriser is None or self._svd is None:
             raise ConfigError("TfidfSvdEmbedder.fit() must be called before encode()")
         if not texts:
@@ -192,7 +198,7 @@ class GeminiEmbedder:
 
     def __init__(self, model: str = "models/gemini-embedding-001") -> None:
         self.model = model
-        self._client = None
+        self._client: Any = None
 
     def fingerprint(self) -> str:
         return f"gemini:{self.model}"
@@ -211,7 +217,7 @@ class GeminiEmbedder:
             raise ConfigError("GeminiEmbedder requires GEMINI_API_KEY")
         self._client = genai.Client(api_key=key)
 
-    def encode(self, texts: list[str], *, is_query: bool = False) -> np.ndarray:
+    def encode(self, texts: list[str], *, is_query: bool = False) -> NDArray[np.float32]:
         self._ensure_client()
         assert self._client is not None
         task = "RETRIEVAL_QUERY" if is_query else "RETRIEVAL_DOCUMENT"
@@ -224,9 +230,9 @@ class GeminiEmbedder:
         return _l2_normalise(np.asarray(vectors, dtype=np.float32))
 
 
-def build_embedder(kind: str, **kwargs: object) -> Embedder:
+def build_embedder(kind: str, **kwargs: Any) -> Embedder:
     if kind == "minilm":
-        return MiniLMEmbedder(model_id=kwargs.get("model_id"))  # type: ignore[arg-type]
+        return MiniLMEmbedder(model_id=kwargs.get("model_id"))
     if kind == "tfidf_svd":
         return TfidfSvdEmbedder(
             dimension=int(kwargs.get("dimension", 256)),

@@ -172,7 +172,31 @@ disallow_untyped_defs = false
 strict = false
 
 [[tool.mypy.overrides]]
-module = ["faiss.*", "transformers.*", "torch.*", "sklearn.*", "braintrust.*", "google.genai.*", "sentence_transformers.*"]
+# Tier-2 and hosted-provider packages.
+#
+# `follow_imports = "skip"` matters more than it looks. `ignore_missing_imports`
+# alone makes these Any only when the package is ABSENT -- so mypy produces
+# different results on a developer machine that happens to have torch installed
+# than in CI, which excludes torch deliberately. A type check whose outcome
+# depends on which optional packages happen to be present is not a check.
+# Skipping the imports makes both environments agree.
+module = [
+  "faiss.*",
+  "transformers.*",
+  "torch.*",
+  "sklearn.*",
+  "braintrust.*",
+  "google.genai.*",
+  "google.*",
+  "sentence_transformers.*",
+  "yaml.*",
+]
+ignore_missing_imports = true
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+# scripts/ is not an installed package; the CLI adds it to sys.path at call time.
+module = ["validate_corpus", "validate_dataset", "verify_frozen"]
 ignore_missing_imports = true
 
 [tool.coverage.run]

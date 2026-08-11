@@ -91,8 +91,8 @@ def paired_bootstrap(
 
 def compare_metric(
     metric: str,
-    base_by_case: dict[str, dict],
-    impr_by_case: dict[str, dict],
+    base_by_case: dict[str, dict[str, Any]],
+    impr_by_case: dict[str, dict[str, Any]],
     *,
     resamples: int,
     seed: int,
@@ -227,7 +227,7 @@ def build_comparison(
         for name in COUNTERS
     }
 
-    def confusion(source: dict) -> dict[str, int]:
+    def confusion(source: dict[str, Any]) -> dict[str, int]:
         return dict(
             Counter(
                 f"{source[c]['metrics'].get('abstention_expected')}"
@@ -303,7 +303,7 @@ def build_comparison(
             "improved_fact_coverage": impr_facts,
         }
 
-    def latency_stats(source: dict) -> dict[str, Any]:
+    def latency_stats(source: dict[str, Any]) -> dict[str, Any]:
         values = sorted(source[c]["latency_ms"] for c in shared)
         hits = sum(1 for c in shared if source[c]["cache_hit"])
         return {
@@ -427,7 +427,7 @@ def render_markdown(c: Comparison) -> str:
     a("|---|---:|---:|---:|---:|---:|---:|---:|")
     for name, v in sorted(c.per_category.items()):
 
-        def fmt(x):
+        def fmt(x: object) -> str:
             return f"{x:.3f}" if isinstance(x, float) else "-"
 
         a(

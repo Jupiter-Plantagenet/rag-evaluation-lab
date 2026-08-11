@@ -172,9 +172,8 @@ def validate(dataset_path: Path, corpus_dir: Path, schema_path: Path) -> list[st
                     f"is not in fact_ledger.yaml"
                 )
 
-        if chain := case.get("source_chain_id"):
-            if chain not in chain_ids:
-                errors.append(f"[ledger] {cid}: source_chain_id {chain!r} is not a declared chain")
+        if (chain := case.get("source_chain_id")) and chain not in chain_ids:
+            errors.append(f"[ledger] {cid}: source_chain_id {chain!r} is not a declared chain")
 
         # --- 3. unanswerability ----------------------------------------------
         if not case["answerable"]:
@@ -199,7 +198,9 @@ def validate(dataset_path: Path, corpus_dir: Path, schema_path: Path) -> list[st
     counts = Counter(c["category"] for c in cases)
     for cat, minimum in REQUIRED_MIN.items():
         if counts[cat] < minimum:
-            errors.append(f"[distribution] {cat}: {counts[cat]} cases, design requires >= {minimum}")
+            errors.append(
+                f"[distribution] {cat}: {counts[cat]} cases, design requires >= {minimum}"
+            )
 
     if len(cases) < 30:
         errors.append(f"[distribution] {len(cases)} cases total; the design requires >= 30")

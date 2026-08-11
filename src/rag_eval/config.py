@@ -138,7 +138,7 @@ def load_config(path: Path) -> PipelineConfig:
         raise ConfigError(f"{path.name}: {e}") from e
 
 
-def _deep_merge(base: dict, override: dict) -> dict:
+def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
     out = dict(base)
     for key, value in override.items():
         if isinstance(value, dict) and isinstance(out.get(key), dict):

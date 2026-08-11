@@ -19,6 +19,7 @@ from pathlib import Path
 
 import numpy as np
 from jinja2 import Template
+from numpy.typing import NDArray
 
 from rag_eval.citation.link import (
     bind_citations,
@@ -32,14 +33,14 @@ from rag_eval.generation.cache import DiskCache, cache_root
 from rag_eval.generation.generators import CachedGenerator, build_generator
 from rag_eval.ingest.chunkers import build_chunker
 from rag_eval.ingest.corpus import Corpus, load_corpus
-from rag_eval.retrieval.embedders import TfidfSvdEmbedder, build_embedder
+from rag_eval.retrieval.embedders import Embedder, TfidfSvdEmbedder, build_embedder
 from rag_eval.retrieval.retrievers import (
     BM25Retriever,
     DenseRetriever,
     ReciprocalRankFusionRetriever,
     deduplicate_by_overlap,
 )
-from rag_eval.types import Chunk, PipelineOutput, ScoredChunk, Usage
+from rag_eval.types import Chunk, PipelineOutput, ScoredChunk
 
 PROMPT_DIR = Path(__file__).parent / "generation" / "prompts"
 
@@ -183,7 +184,7 @@ def build_pipeline(config: PipelineConfig, corpus_dir: Path) -> Pipeline:
     )
 
 
-def _embed_chunks(embedder, chunks: list[Chunk]) -> np.ndarray:
+def _embed_chunks(embedder: Embedder, chunks: list[Chunk]) -> NDArray[np.float32]:
     """Embed the corpus, caching by (embedder fingerprint, chunk text).
 
     Cached per text rather than per batch, so changing top-k, the chunk ordering,
@@ -194,7 +195,7 @@ def _embed_chunks(embedder, chunks: list[Chunk]) -> np.ndarray:
     cache = DiskCache(cache_root(), "embeddings")
     fp = embedder.fingerprint()
 
-    vectors: list[np.ndarray] = []
+    vectors: list[NDArray[np.float32]] = []
     missing: list[tuple[int, str]] = []
     for i, chunk in enumerate(chunks):
         key = stable_hash({"fp": fp, "text": chunk.text})

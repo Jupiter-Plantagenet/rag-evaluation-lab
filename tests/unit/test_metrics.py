@@ -34,14 +34,14 @@ from rag_eval.types import (
 
 
 def make_case(**kw) -> EvalCase:
-    defaults = dict(
-        id="X-01",
-        category="factual",
-        question="q?",
-        answerable=True,
-        expected_abstention_behaviour=AbstentionBehaviour.ANSWER,
-        split=Split.DEV,
-    )
+    defaults = {
+        "id": "X-01",
+        "category": "factual",
+        "question": "q?",
+        "answerable": True,
+        "expected_abstention_behaviour": AbstentionBehaviour.ANSWER,
+        "split": Split.DEV,
+    }
     defaults.update(kw)
     return EvalCase(**defaults)  # type: ignore[arg-type]
 
@@ -220,9 +220,7 @@ def test_abstaining_on_an_answerable_question_is_wrong() -> None:
 
 @pytest.mark.unit
 def test_abstaining_on_an_unanswerable_question_is_right() -> None:
-    case = make_case(
-        answerable=False, expected_abstention_behaviour=AbstentionBehaviour.ABSTAIN
-    )
+    case = make_case(answerable=False, expected_abstention_behaviour=AbstentionBehaviour.ABSTAIN)
     assert abstention_outcome(case, abstained=True, clarified=False).correct
     assert not abstention_outcome(case, abstained=False, clarified=False).correct
 

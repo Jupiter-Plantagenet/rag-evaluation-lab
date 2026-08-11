@@ -84,7 +84,11 @@ def split_claims(answer: str) -> list[Claim]:
                         start = line.find(piece, offset)
                         claims.append(
                             _make_claim(
-                                len(claims), piece.strip(), answer, line_start + max(start, 0), piece
+                                len(claims),
+                                piece.strip(),
+                                answer,
+                                line_start + max(start, 0),
+                                piece,
                             )
                         )
                         offset = max(start, 0) + len(piece)
@@ -229,7 +233,9 @@ ABSTENTION_DETECTOR_VERSION = 3
 # "NovaPay does not lend" is a fact.
 _SOURCE = r"(?:the\s+)?(?:documentation|excerpts?|context|sources?|passages?|documents?|text|information\s+provided|provided\s+\w+)"
 _NEG = r"(?:do(?:es)?\s+not|don't|doesn't|fail\s+to|fails\s+to)"
-_REPORT = r"(?:contain|include|state|specify|mention|say|answer|cover|provide|address|indicate|detail)"
+_REPORT = (
+    r"(?:contain|include|state|specify|mention|say|answer|cover|provide|address|indicate|detail)"
+)
 
 ABSTENTION_PATTERNS = (
     # Source-anchored negation, in either order.

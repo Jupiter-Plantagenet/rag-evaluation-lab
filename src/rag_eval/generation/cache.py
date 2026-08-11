@@ -67,13 +67,14 @@ class DiskCache:
     def path_for(self, key: str) -> Path:
         return self.root / self.namespace / key[:2] / f"{key}.json.gz"
 
-    def get(self, key: str) -> dict | None:
+    def get(self, key: str) -> dict[str, Any] | None:
         path = self.path_for(key)
         if not path.exists():
             return None
         with gzip.open(path, "rt", encoding="utf-8") as fh:
             record = json.load(fh)
 
+        assert isinstance(record, dict)
         stored = record.get("cache_schema_version")
         if stored != CACHE_SCHEMA_VERSION:
             # Raise rather than ignore. A differently-shaped record that is
@@ -91,7 +92,7 @@ class DiskCache:
             )
         return record
 
-    def put(self, key: str, value: dict) -> None:
+    def put(self, key: str, value: dict[str, Any]) -> None:
         path = self.path_for(key)
         path.parent.mkdir(parents=True, exist_ok=True)
         record = {**value, "cache_schema_version": CACHE_SCHEMA_VERSION}
@@ -103,7 +104,7 @@ class DiskCache:
             json.dump(record, fh, ensure_ascii=False)
         tmp.replace(path)
 
-    def require(self, key: str, *, detail: str = "", prompt_prefix: str = "") -> dict:
+    def require(self, key: str, *, detail: str = "", prompt_prefix: str = "") -> dict[str, Any]:
         """Fetch, or raise with enough context to fix it without re-running.
 
         Called on the offline path. The alternative -- returning a default, or
@@ -141,7 +142,7 @@ def llm_cache_key(
     *,
     provider: str,
     model: str,
-    params: dict,
+    params: dict[str, Any],
     prompt: str,
     template_sha: str,
 ) -> str:

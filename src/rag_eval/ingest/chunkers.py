@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import hashlib
 import re
-from typing import Protocol
+from typing import Any, Protocol
 
 from rag_eval.types import Chunk, Document
 
@@ -217,7 +217,7 @@ class MarkdownStructureChunker:
         return [(s, e) for s, e in pieces if e > s]
 
 
-def build_chunker(kind: str, **kwargs: object) -> Chunker:
+def build_chunker(kind: str, **kwargs: Any) -> Chunker:
     if kind == "fixed_size":
         return FixedSizeChunker(
             chunk_size=int(kwargs.get("chunk_size", 500)),

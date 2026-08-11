@@ -111,7 +111,7 @@ def check_encoding(path: Path) -> list[str]:
         return errors
 
     # Mojibake signature: UTF-8 bytes that were decoded as cp1252 and re-encoded.
-    for marker in ("â€", "Ã©", "Â "):
+    for marker in ("â€", "Ã©", "Â "):  # noqa: RUF001 - the NBSP is the mojibake signature being detected
         if marker in text:
             errors.append(
                 f"[encoding] {path.name}: mojibake detected ({marker!r}). The file was "
@@ -140,7 +140,7 @@ def check(corpus_dir: Path) -> list[str]:
     errors: list[str] = []
 
     # --- 0. encoding, before anything tries to parse -------------------------
-    for path in sorted(corpus_dir.glob("*.md")) + [corpus_dir / "fact_ledger.yaml"]:
+    for path in [*sorted(corpus_dir.glob("*.md")), corpus_dir / "fact_ledger.yaml"]:
         errors.extend(check_encoding(path))
     if errors:
         return errors  # parsing corrupted bytes only produces confusing errors
@@ -150,7 +150,7 @@ def check(corpus_dir: Path) -> list[str]:
     bodies = {d: normalise(body) for d, (_, body, _) in docs.items()}
 
     # --- 5. front matter ----------------------------------------------------
-    for doc_id, (fm, _, path) in docs.items():
+    for _doc_id, (fm, _, path) in docs.items():
         missing = REQUIRED_KEYS - fm.keys()
         if missing:
             errors.append(f"[front-matter] {path.name}: missing keys {sorted(missing)}")

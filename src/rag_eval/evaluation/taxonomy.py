@@ -53,7 +53,7 @@ class Classification:
     evidence: dict[str, Any] = field(default_factory=dict)
 
 
-def _is_failure(record: dict, case: EvalCase, thresholds: dict) -> bool:
+def _is_failure(record: dict[str, Any], case: EvalCase, thresholds: dict[str, Any]) -> bool:
     """Whether a case counts as failed at all.
 
     Deliberately generous about what counts as success on abstention cases:
@@ -79,12 +79,12 @@ def _is_failure(record: dict, case: EvalCase, thresholds: dict) -> bool:
         return True
     if m.get("n_fabricated", 0) > 0:
         return True
-    if m.get("forbidden_claims", 0) > 0:
-        return True
-    return False
+    return bool(m.get("forbidden_claims", 0) > 0)
 
 
-def classify(record: dict, case: EvalCase, *, k: int = 5, min_fact_coverage: float = 0.999) -> Classification:
+def classify(
+    record: dict[str, Any], case: EvalCase, *, k: int = 5, min_fact_coverage: float = 0.999
+) -> Classification:
     """Assign one primary failure class from trace signals.
 
     ``min_fact_coverage`` defaults to effectively 1.0: a required fact is
@@ -172,14 +172,10 @@ def classify(record: dict, case: EvalCase, *, k: int = 5, min_fact_coverage: flo
 
     # --- 5. answer content ----------------------------------------------------
     if m.get("forbidden_claims", 0) > 0:
-        return Classification(
-            case.id, True, "unsupported_claim", secondary, {"coverage": coverage}
-        )
+        return Classification(case.id, True, "unsupported_claim", secondary, {"coverage": coverage})
 
     if coverage is not None and coverage < 1.0:
-        primary = (
-            "aggregation_error" if case.category == "aggregation" else "incomplete_answer"
-        )
+        primary = "aggregation_error" if case.category == "aggregation" else "incomplete_answer"
         return Classification(case.id, True, primary, secondary, {"coverage": coverage})
 
     if claim_coverage is not None and claim_coverage < 0.5:
@@ -190,10 +186,10 @@ def classify(record: dict, case: EvalCase, *, k: int = 5, min_fact_coverage: flo
     return Classification(case.id, True, "format_violation", secondary, {"unmatched": True})
 
 
-def classify_run(records: list[dict], cases: dict[str, EvalCase], *, k: int = 5) -> list[Classification]:
-    return [
-        classify(r, cases[r["case_id"]], k=k) for r in records if r["case_id"] in cases
-    ]
+def classify_run(
+    records: list[dict[str, Any]], cases: dict[str, EvalCase], *, k: int = 5
+) -> list[Classification]:
+    return [classify(r, cases[r["case_id"]], k=k) for r in records if r["case_id"] in cases]
 
 
 def taxonomy_counts(classifications: list[Classification]) -> dict[str, int]:

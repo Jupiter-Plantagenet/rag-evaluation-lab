@@ -66,7 +66,7 @@ def test_tokenizer_keeps_domain_tokens_intact(text, expected) -> None:
 
 @pytest.mark.unit
 def test_stoplist_preserves_negation() -> None:
-    """"no" and "not" must survive: grounding depends on them.
+    """ "no" and "not" must survive: grounding depends on them.
 
     A standard stoplist removes both, which would make "no refund fee" and
     "refund fee" identical to the lexical retriever and to the groundedness
@@ -103,9 +103,12 @@ def test_bm25_finds_exact_identifiers_that_dense_retrieval_blurs(dense, bm25) ->
     alphanumeric token; BM25 treats it as the rare term it is.
     """
     lexical = [s.chunk.chunk_id for s in bm25.retrieve("PAY_003", 5)]
-    hits = [cid for cid in lexical if "PAY_003" in next(
-        s.chunk.text for s in bm25.retrieve("PAY_003", 5) if s.chunk.chunk_id == cid
-    )]
+    hits = [
+        cid
+        for cid in lexical
+        if "PAY_003"
+        in next(s.chunk.text for s in bm25.retrieve("PAY_003", 5) if s.chunk.chunk_id == cid)
+    ]
     assert hits, "BM25 should surface the chunk literally containing PAY_003"
 
 

@@ -18,7 +18,8 @@ from __future__ import annotations
 
 import time
 from collections import Counter
-from datetime import datetime, timezone
+from collections.abc import Sequence
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -26,18 +27,22 @@ import yaml
 
 from rag_eval.config import PipelineConfig
 from rag_eval.data.loader import load_cases
-from rag_eval.evaluation import metrics as M
+from rag_eval.evaluation import (
+    metrics as M,  # noqa: N812 - M.<metric> reads better at every call site
+)
 from rag_eval.pipeline import Pipeline
 from rag_eval.tracing.schema import TraceRecord, TraceWriter, record_from_output
 from rag_eval.types import EvalCase, Split
 
 
 def make_run_id(config: PipelineConfig, split: Split) -> str:
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     return f"{config.name}-{split.value}-{stamp}-{config.pipeline_hash[:8]}"
 
 
-def score_record(record: TraceRecord, case: EvalCase, threshold: float, ks: list[int]) -> dict:
+def score_record(
+    record: TraceRecord, case: EvalCase, threshold: float, ks: list[int]
+) -> dict[str, Any]:
     """Deterministic metrics for one case. No model is consulted."""
     retrieved = record.retrieved
     out: dict[str, Any] = {}
@@ -101,7 +106,7 @@ def run_split(
 
     with TraceWriter(run_dir / "trace.jsonl") as writer:
         for i, case in enumerate(cases, start=1):
-            started_at = datetime.now(timezone.utc).isoformat()
+            started_at = datetime.now(UTC).isoformat()
             try:
                 output = pipeline.answer(case.question)
                 record = record_from_output(
@@ -132,7 +137,7 @@ def run_split(
                     answerable=case.answerable,
                     expected_behaviour=case.expected_abstention_behaviour.value,
                     started_at=started_at,
-                    finished_at=datetime.now(timezone.utc).isoformat(),
+                    finished_at=datetime.now(UTC).isoformat(),
                     errors=[f"{type(e).__name__}: {e}"],
                 )
 
@@ -158,12 +163,14 @@ def run_split(
     return summary
 
 
-def summarise(records: list[TraceRecord], cases, config: PipelineConfig) -> dict[str, Any]:
+def summarise(
+    records: list[TraceRecord], cases: Sequence[EvalCase], config: PipelineConfig
+) -> dict[str, Any]:
     """Aggregate, keeping deterministic and behavioural results separate."""
     ok = [r for r in records if not r.errors]
     by_case = {c.id: c for c in cases}
 
-    def col(name: str) -> list:
+    def col(name: str) -> list[Any]:
         return [r.metrics.get(name) for r in ok]
 
     aggregate: dict[str, Any] = {
@@ -192,9 +199,11 @@ def summarise(records: list[TraceRecord], cases, config: PipelineConfig) -> dict
         aggregate[name] = round(mean, 4) if mean is not None else None
         aggregate[f"{name}__n"] = len([v for v in values if v is not None])
 
-    aggregate["abstention_accuracy"] = round(
-        sum(1 for r in ok if r.metrics.get("abstention_correct")) / len(ok), 4
-    ) if ok else None
+    aggregate["abstention_accuracy"] = (
+        round(sum(1 for r in ok if r.metrics.get("abstention_correct")) / len(ok), 4)
+        if ok
+        else None
+    )
     aggregate["abstention_confusion"] = dict(
         Counter(
             f"{r.metrics.get('abstention_expected')}->{r.metrics.get('abstention_observed')}"

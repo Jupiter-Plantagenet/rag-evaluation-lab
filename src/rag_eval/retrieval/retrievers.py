@@ -19,7 +19,9 @@ from collections import Counter
 from typing import Protocol
 
 import numpy as np
+from numpy.typing import NDArray
 
+from rag_eval.retrieval.embedders import Embedder
 from rag_eval.types import Chunk, ScoredChunk
 
 # Matches an optional leading currency symbol, an alphanumeric core that may
@@ -33,8 +35,40 @@ TOKEN_RE = re.compile(r"\$?[a-z0-9_]+(?:[.\-+/][a-z0-9_]+)*%?")
 # meaning in this corpus -- "no fee", "not available", "up to" -- and negation is
 # exactly where a grounding checker must not lose information.
 STOPWORDS = frozenset(
-    "a an the of to in for on at by is are was were be been it its this that "
-    "as with from or and if then than which what when how".split()
+    [
+        "a",
+        "an",
+        "the",
+        "of",
+        "to",
+        "in",
+        "for",
+        "on",
+        "at",
+        "by",
+        "is",
+        "are",
+        "was",
+        "were",
+        "be",
+        "been",
+        "it",
+        "its",
+        "this",
+        "that",
+        "as",
+        "with",
+        "from",
+        "or",
+        "and",
+        "if",
+        "then",
+        "than",
+        "which",
+        "what",
+        "when",
+        "how",
+    ]
 )
 
 
@@ -65,7 +99,9 @@ class DenseRetriever:
 
     name = "dense"
 
-    def __init__(self, chunks: list[Chunk], matrix: np.ndarray, embedder) -> None:
+    def __init__(
+        self, chunks: list[Chunk], matrix: NDArray[np.float32], embedder: Embedder
+    ) -> None:
         if len(chunks) != matrix.shape[0]:
             raise ValueError(f"{len(chunks)} chunks but {matrix.shape[0]} vectors")
         self.chunks = chunks
@@ -194,7 +230,9 @@ class ReciprocalRankFusionRetriever:
         ]
 
 
-def deduplicate_by_overlap(results: list[ScoredChunk], max_overlap: float = 0.8) -> list[ScoredChunk]:
+def deduplicate_by_overlap(
+    results: list[ScoredChunk], max_overlap: float = 0.8
+) -> list[ScoredChunk]:
     """Drop lower-ranked chunks that mostly repeat a higher-ranked one.
 
     Overlapping chunkers emit near-duplicates, and feeding three copies of the

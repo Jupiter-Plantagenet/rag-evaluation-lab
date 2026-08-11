@@ -22,8 +22,9 @@ import json
 import os
 import platform
 from collections.abc import Sequence
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -45,7 +46,7 @@ def _record_test_access(reason: str, n_cases: int, repo_root: Path) -> None:
     ledger = repo_root / TEST_LEDGER_PATH
     ledger.parent.mkdir(parents=True, exist_ok=True)
     entry = {
-        "ts": datetime.now(timezone.utc).isoformat(),
+        "ts": datetime.now(UTC).isoformat(),
         "reason": reason,
         "n_cases": n_cases,
         "host": platform.node(),
@@ -56,7 +57,7 @@ def _record_test_access(reason: str, n_cases: int, repo_root: Path) -> None:
         fh.write(json.dumps(entry, sort_keys=True) + "\n")
 
 
-def _parse_case(raw: dict, corpus: dict[str, str] | None) -> EvalCase:
+def _parse_case(raw: dict[str, Any], corpus: dict[str, str] | None) -> EvalCase:
     spans: list[EvidenceSpan] = []
     for s in raw.get("expected_evidence_spans") or []:
         start, end = -1, -1
@@ -176,7 +177,7 @@ def load_all_cases(
     return tuple(_parse_case(c, corpus) for c in raw["cases"])
 
 
-def read_test_access_ledger(repo_root: Path | None = None) -> list[dict]:
+def read_test_access_ledger(repo_root: Path | None = None) -> list[dict[str, Any]]:
     """Return every recorded held-out access. Printed in the comparison report."""
     ledger = (repo_root or Path.cwd()) / TEST_LEDGER_PATH
     if not ledger.exists():

@@ -91,8 +91,14 @@ def cmd_run(args: argparse.Namespace) -> int:
 
     print(f"\nrun_id {summary['run_id']}")
     print(f"cases  {summary['n_cases']}  errors {summary['n_errors']}")
-    for key in ("recall_at_5", "mrr", "required_fact_coverage", "abstention_accuracy",
-                "citation_validity", "claim_citation_coverage"):
+    for key in (
+        "recall_at_5",
+        "mrr",
+        "required_fact_coverage",
+        "abstention_accuracy",
+        "citation_validity",
+        "claim_citation_coverage",
+    ):
         value = summary.get(key)
         n = summary.get(f"{key}__n")
         shown = f"{value:.3f}" if isinstance(value, float) else str(value)
@@ -158,7 +164,7 @@ def cmd_validate(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_ledger(args: argparse.Namespace) -> int:
+def cmd_ledger(args: argparse.Namespace) -> int:  # noqa: ARG001 - argparse dispatch signature
     """Print the held-out access log -- the evidence the split stayed frozen."""
     from rag_eval.data.loader import read_test_access_ledger
 

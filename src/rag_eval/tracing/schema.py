@@ -20,7 +20,7 @@ import platform
 import subprocess
 import sys
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -133,8 +133,8 @@ def record_from_output(
     output: PipelineOutput,
     *,
     run_id: str,
-    case,
-    pipeline,
+    case: Any,
+    pipeline: Any,
     dataset_id: str,
     corpus_manifest_sha: str,
     started_at: str,
@@ -218,7 +218,7 @@ def record_from_output(
         cache_hit=output.cache_hit,
         errors=list(output.errors),
         started_at=started_at,
-        finished_at=datetime.now(timezone.utc).isoformat(),
+        finished_at=datetime.now(UTC).isoformat(),
         environment=environment_record(cfg.seed),
     )
 
@@ -254,4 +254,6 @@ class TraceWriter:
 
 
 def read_traces(path: Path) -> list[dict[str, Any]]:
-    return [json.loads(line) for line in Path(path).read_text(encoding="utf-8").splitlines() if line]
+    return [
+        json.loads(line) for line in Path(path).read_text(encoding="utf-8").splitlines() if line
+    ]

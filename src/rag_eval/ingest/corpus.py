@@ -11,6 +11,7 @@ import re
 import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -54,7 +55,7 @@ class Corpus:
             h.update(self.documents[doc_id].sha256.encode("utf-8"))
         return h.hexdigest()
 
-    def manifest(self) -> dict:
+    def manifest(self) -> dict[str, Any]:
         return {
             "manifest_sha": self.manifest_sha,
             "n_documents": len(self.documents),
