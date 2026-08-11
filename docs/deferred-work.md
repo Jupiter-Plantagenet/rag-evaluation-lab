@@ -4,7 +4,38 @@ Things this repository was designed for and does not do. Listed so that the gap
 between the design and the build is visible rather than inferred from a missing
 file.
 
-Ordered by what would most change the strength of the evidence.
+## How to read this list
+
+Everything below is a **research extension**, not an unfinished obligation. The
+case study has an accepted scope, and it is complete within it.
+
+**Accepted current scope.** A deterministic evaluation harness for
+document-grounded RAG, measured on one synthetic corpus with a 50-case versioned
+dataset and a 22-case held-out split that was read exactly twice and is now
+frozen. Everything published rests on deterministic metrics. The verification pass
+that audited those statistics, built the test suites and corrected the claim
+boundary is finished.
+
+**Future research extensions.** Items 1–2 and 4–10 below. Each would let the
+project answer a *different* question — whether citations entail their claims,
+whether the harness generalises to prose its author did not write, what the
+interventions cost in money. None of them is required for the current claims to
+be true, and none blocks describing this work publicly.
+
+**Genuine blockers — to broader claims only.** Three, and each blocks a specific
+sentence rather than the project:
+
+| Blocker | What it forbids saying |
+|---|---|
+| No judge (item 1) | that citations are *supported*, only that they *resolve* |
+| Budget confound, audit A-13 (item 5) | that the improved configuration *ranks* better on held-out data |
+| n = 22, no multiplicity control (item 8) | "statistically significant"; any claim resting on ten inconclusive metrics |
+
+All three are already stated in [`results.md`](results.md),
+[`limitations.md`](limitations.md) and the README. A claim boundary that is
+documented is not a blocker to publication — it is what makes publication honest.
+
+Items are ordered by what would most change the strength of the evidence.
 
 ---
 
@@ -151,8 +182,25 @@ system it demonstrated.
 
 ---
 
-## 11. Portfolio and packaging
+## 11. Publication
 
-Architecture diagrams, charts, screenshots and any external write-up. `assets/`
-and `portfolio/` are empty. Deliberately gated behind everything above: packaging
-a result before its measurement gaps are closed is how the claims drift.
+**Status: packaging complete; not published.**
+
+The case study, portfolio copy, visuals, demo script and publication checklist are
+in [`portfolio/`](../portfolio/), with generated figures in
+[`assets/charts/`](../assets/charts/).
+
+Packaging was gated on the **verification** work — the statistical audit, the
+integration and regression suites, and the corrected claim boundary — because
+publishing a result before its measurement gaps are *known* is how claims drift.
+It was never gated on items 1–10. Those describe experiments this project has not
+run; the accepted scope does not require them, and every limitation they concern
+is disclosed rather than hidden.
+
+The one substantive constraint publication does impose is on wording. The
+narrative is "an evaluation system that detected a confounded result", not "a RAG
+system that got better", and the phrasing rules in
+[`results.md`](results.md#required-phrasing) govern every public sentence.
+
+Remaining before anything goes out: a GitHub remote, an observed Actions run
+(no CI status is claimed until then), and the owner's decision to publish.

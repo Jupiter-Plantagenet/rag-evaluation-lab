@@ -1,0 +1,142 @@
+# Publication checklist
+
+Run before anything leaves this machine. Every row below was actually executed on
+the current tree, not asserted.
+
+**Nothing has been published.** No remote, no push, no deployment, no Upwork
+change, no social post, no landing page, no outreach.
+
+| # | Check | Result |
+|---|---|---|
+| 1 | README status current | **PASS** — reads "verification complete; portfolio/publication packaging in progress" |
+| 2 | Claims match `docs/results.md` | **PASS** — see [claim trace](#claim-trace) |
+| 3 | No frozen artefact changed | **PASS** — 10/10 checksums match; `git diff f4ac2b1 HEAD` over frozen paths is empty |
+| 4 | No secret committed | **PASS with one note** — see [secret scan](#secret-scan) |
+| 5 | No absolute local paths | **PASS after fix** — one found and redacted |
+| 6 | No private information | **PASS** — only the author's own public GitHub handle |
+| 7 | Synthetic corpus labelled | **PASS** — front matter, README, case study, and visual 1 |
+| 8 | LICENSE correct | **PASS** — MIT (code) + CC BY 4.0 (corpus) |
+| 9 | CITATION.cff correct | **PASS** — title, author, repository-code, abstract all current |
+| 10 | Links relative and valid | **PASS** — every internal link in README, `docs/` and `portfolio/` resolves |
+| 11 | Images readable | **PASS** — 4 × 1600×1200 (4:3), 163–280 KB PNG, layout guard clean |
+| 12 | Upwork copy truthful | **PASS** — every claim traceable; character counts verified |
+| 13 | No production claim | **PASS** — "not production-ready" stated in README, case study and limitations |
+| 14 | No client-work claim | **PASS** — "self-directed research-engineering case study" throughout |
+| 15 | No significance / SOTA terminology | **PASS** — appears only inside prohibition lists |
+| 16 | No misleading bare percentage | **PASS** — no "improved X by N%" anywhere |
+
+---
+
+## Secret scan
+
+Scanned **all 281 objects across every ref** in git history, not just the working
+tree:
+
+```bash
+git grep -InE "AIza[0-9A-Za-z_-]{20,}|sk-[A-Za-z0-9]{20,}|sk_live_[A-Za-z0-9]{10,}|ghp_[A-Za-z0-9]{20,}|xox[baprs]-|-----BEGIN" $(git rev-list --all)
+git log --all -S "<each live value from .env>"
+```
+
+**The live `GEMINI_API_KEY` does not appear in any commit, on any ref.** `.env` has
+been gitignored since the first commit and was never tracked.
+
+One match, and it is not a secret:
+
+| Match | Location | Assessment |
+|---|---|---|
+| `sk_live_4f8a2c9e1b7d3506` | `data/corpus/novapay/api-authentication.md:40` | **Synthetic.** An invented example token inside the fictional NovaPay API documentation, in a file whose front matter declares `synthetic: true` with a disclaimer. NovaPay does not exist and there is no service for it to authenticate against. |
+
+**Action before publishing to GitHub:** this string is *key-shaped*, so GitHub
+secret scanning and tools like trufflehog will flag it. It is harmless, but expect
+an alert and be ready to dismiss it as a documented false positive. Defanging it
+(e.g. `sk_live_EXAMPLE_NOT_A_REAL_KEY`) would change the corpus bytes, which are
+hashed into `corpus_manifest_sha` and therefore into every frozen artefact — so it
+**must not** be changed while the held-out result stands.
+
+One further match was a false positive of the scanner itself:
+`BRAINTRUST_PROJECT=rag-evaluation-lab` is the repository name, not a credential.
+
+## Absolute local paths
+
+One found and fixed:
+
+| File | Was | Now |
+|---|---|---|
+| `docs/source-project-audit.md:18` | `C:\Users\akorg\CascadeProjects\resume\projects\llm-support-agent` | `local working copy (absolute path redacted for publication)` |
+
+It leaked both a filesystem layout and the local username. Re-scanned after the
+fix: no absolute Windows or POSIX home paths remain in any tracked text file.
+
+## Private information
+
+The only personal identifiers are the author's own, and are intentional:
+
+- `George Akor` in `LICENSE` and `CITATION.cff` — a copyright and citation record.
+- `Jupiter-Plantagenet` in `CITATION.cff` and the JSON-Schema `$id` — the author's
+  public GitHub handle.
+
+No email addresses, no machine hostnames, no third-party names. The `host` field in
+`runs/.test_ledger.jsonl` records `Jupiter`, which is a machine name, not a person
+— it is part of a frozen artefact and cannot be edited.
+
+## Claim trace
+
+Each public number, and the file that must agree with it:
+
+| Claim | Source of truth |
+|---|---|
+| MRR 0.667 → 0.835, CI [+0.008, +0.339] | `reports/held-out/comparison.json` |
+| recall@10 0.692 → 0.883, CI [+0.025, +0.375] | `reports/held-out/comparison.json` |
+| matched-budget MRR +0.150 [−0.017, +0.321] | `docs/statistical-audit.md` A-13 |
+| matched-budget recall@4 +0.058 [−0.067, +0.200] | `docs/statistical-audit.md` A-13 |
+| 10 of 12 metrics no measurable difference | `docs/results.md` |
+| non-authoritative citations 4 → 7 | `reports/held-out/comparison.json` |
+| forbidden claims 6 → 6, fabricated 0 → 0 | `reports/held-out/comparison.json` |
+| ablation MRR 0.435 / 0.574 / 0.399 / 0.565 | `reports/ablation/dev-retrieval-ablation.json` |
+| 22 held-out cases, 20 retrieval-evaluable | `docs/frozen-held-out-result.md` |
+| 164 tests passed, 3 skipped | `pytest` on the current tree |
+
+`scripts/make_portfolio_visuals.py` re-reads the two JSON reports on every run and
+**fails** if any plotted value has drifted, so the figures cannot silently
+disagree with the evidence.
+
+## Wording rules applied
+
+Present in the copy:
+
+- "the improved retrieval configuration" (a bundle), never a single named component
+- "the paired-bootstrap 95% CI excluded zero"
+- "development split — explanatory, not held-out evidence" on every ablation number
+- "context/retrieval-budget comparison" for recall@10
+- "not false — confounded by the retrieval budget"
+
+Absent from every claim (they appear only in prohibition lists):
+
+- "statistically significant", "state-of-the-art", "production-ready",
+  "enterprise-grade", "battle-tested"
+- "the improved system ranks better"
+- "BM25 / hybrid retrieval / structure-aware chunking caused the held-out improvement"
+- any bare "improved by N%"
+
+## Remaining blockers to publication
+
+| Blocker | Owner decision |
+|---|---|
+| No GitHub remote exists | Create one when ready |
+| No GitHub Actions run has been observed | No CI badge or "CI green" claim until one has |
+| The synthetic `sk_live_…` string will trip secret scanners | Expect the alert; dismiss as documented above. Do **not** edit the corpus. |
+| Nothing has been reviewed by a second person | Optional, but the strongest remaining check |
+
+None of these is a defect in the work. They are the difference between *ready to
+publish* and *published*.
+
+## Re-run this checklist
+
+```bash
+python scripts/verify_frozen.py
+python scripts/validate_corpus.py
+python scripts/validate_dataset.py
+python -m pytest -q
+python scripts/make_portfolio_visuals.py     # fails if a figure drifts from the reports
+git grep -InE "AIza[0-9A-Za-z_-]{20,}|sk-[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{20,}" $(git rev-list --all)
+```

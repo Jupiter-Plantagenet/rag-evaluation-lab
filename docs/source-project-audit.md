@@ -15,7 +15,7 @@ assessed as such here.
 
 | Item | Value |
 |---|---|
-| Path | `C:\Users\akorg\CascadeProjects\resume\projects\llm-support-agent` |
+| Path | local working copy (absolute path redacted for publication) |
 | Remote | `https://github.com/Jupiter-Plantagenet/llm-support-agent.git` |
 | Branch | `main` (only local branch), working tree clean |
 | Commits | 4, all 2026-04-01 → 2026-04-02 |
