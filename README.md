@@ -1,5 +1,7 @@
 # RAG Evaluation Lab: Grounding, Citations and Regression Testing
 
+[![CI](https://github.com/Jupiter-Plantagenet/rag-evaluation-lab/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Jupiter-Plantagenet/rag-evaluation-lab/actions/workflows/ci.yml)
+
 An evaluation and regression-testing harness for document-grounded
 retrieval-augmented generation.
 
@@ -15,8 +17,7 @@ question about one:
 7. Did an intervention **measurably** improve anything?
 8. Can a confirmed failure be frozen so it cannot come back?
 
-> **Status: verification and portfolio packaging complete; publication pending
-> GitHub CI.**
+> **Status: published; verification complete and GitHub CI passing.**
 >
 > The experiment is finished and its held-out result is **frozen** — closed
 > evidence, protected by checksums a test verifies. A verification pass audited
@@ -25,8 +26,11 @@ question about one:
 > and a claim-correction pass followed. No further scientific development is in
 > scope.
 >
-> The workflow's commands pass locally. **No GitHub Actions run has been observed
-> yet, so no CI status is claimed** and there is no badge.
+> All three CI jobs — `format / lint / types`, `tests (ubuntu, py3.12)` and
+> `unit tests (windows, py3.12)` — pass on GitHub Actions for the current commit.
+> The first run failed, and correctly: it caught that the frozen artefacts were
+> gitignored and absent from every clone, and that their checksums had been
+> recorded from CRLF bytes no other platform could reproduce. Both are fixed.
 >
 > Questions 1, 3, 5, 6, 7 and 8 are answered by deterministic measurement.
 > Questions 2 and 4 are answered only in part — establishing that a citation
@@ -221,9 +225,9 @@ evidence.
 - On a cache miss while offline the pipeline **fails loudly** rather than falling
   back — a silent fallback would let a green build certify a system that never ran.
 
-**CI status is not claimed here.** The workflow's commands pass locally; no GitHub
-Actions run has been observed for the current tree, and a badge will appear only
-once one has.
+**CI status.** All three jobs pass on GitHub Actions for the current commit; the
+badge above links to the run. The suite is offline there too — no credentials, no
+network, no model download.
 
 ## Claim boundary
 
