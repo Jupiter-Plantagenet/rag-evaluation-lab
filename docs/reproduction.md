@@ -31,7 +31,7 @@ pip install -e . --no-deps
 ```
 
 The Linux lock is hash-pinned and cross-compiled so CI never resolves dependencies
-for itself. `torch`, `transformers` and `faiss` are deliberately **excluded** from
+for itself. `torch` and `transformers` are deliberately **excluded** from
 both locks — on PyPI's manylinux wheels `torch` is the CUDA build, which would add
 roughly 2.5 GB of `nvidia-*` wheels to every CI run.
 `scripts/assert_ci_env.py` fails the build if any leaks back in.

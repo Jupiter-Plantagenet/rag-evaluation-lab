@@ -18,7 +18,6 @@
 
 # Binary -- never touch.
 *.npy   binary
-*.faiss binary
 *.png   binary
 *.gz    binary
 *.ico   binary

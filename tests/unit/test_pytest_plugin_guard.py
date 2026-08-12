@@ -6,14 +6,18 @@ So this file's real job is to stop someone "tidying up" the ``-p no:`` flags in
 ``[tool.pytest.ini_options] addopts`` later, when the reason for them is no
 longer obvious.
 
-Background: this project's venv inherits Anaconda's site-packages, where three
-packages register ``pytest11`` entry points. ``web3`` 6.11.3 ships
-``pytest_ethereum``, which raises on import against ``eth-typing`` 5.2.1::
+Background: plugin autoload is a ``sys.path`` scan for ``pytest11`` entry
+points, so pytest loads whatever the interpreter can see. The documented setup
+-- a clean ``python -m venv .venv`` plus a lock file -- can see none of these,
+and the flags are inert there. They are kept as a defensive compatibility
+guard rather than removed, because the failure they prevent is fatal and its
+cause is not obvious from the traceback.
+
+It was hit for real during development, on an interpreter that could see
+``web3`` 6.11.3. Its ``pytest_ethereum`` plugin raises on import against
+``eth-typing`` 5.2.1::
 
     ImportError: cannot import name 'ContractName' from 'eth_typing'
-
-Plugin autoload is a ``sys.path`` scan, not an interpreter property, so
-``--system-site-packages`` inherits the hazard and no venv can escape it.
 
 Why the fix lives in ``pyproject.toml`` and not here: ``conftest.py`` and test
 modules are collected *after* ``load_setuptools_entrypoints("pytest11")``. By the
@@ -37,8 +41,8 @@ def test_hazardous_plugin_is_blocked(pytestconfig: pytest.Config, name: str) -> 
     assert pytestconfig.pluginmanager.is_blocked(name), (
         f"Plugin {name!r} is no longer blocked. Restore it to the `-p no:` list in\n"
         f"[tool.pytest.ini_options] addopts in pyproject.toml.\n"
-        f"Without it, `pytest` crashes on import in any environment that can see\n"
-        f"Anaconda's site-packages. See this module's docstring for the mechanism."
+        f"Without it, `pytest` crashes on import in any environment that can see a\n"
+        f"broken pytest11 plugin. See this module's docstring for the mechanism."
     )
 
 

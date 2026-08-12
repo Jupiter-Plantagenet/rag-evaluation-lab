@@ -39,7 +39,6 @@ cache/
 
 # Vector indexes are rebuilt from the corpus + a manifest hash; never committed.
 data/index/
-*.faiss
 
 # The public-document corpus is FETCHED, never redistributed. See
 # scripts/fetch_sqlite_docs.py and docs/corpora.md for the licence basis.

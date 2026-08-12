@@ -12,10 +12,11 @@
 #      it inside the lock would trigger a full re-download of a torch that is
 #      already installed.
 #
-# On the development machine these are inherited for free from the Anaconda base
-# environment via `python -m venv --system-site-packages`, so this file is
-# normally a no-op. It exists so a reviewer on a clean machine can reproduce the
-# local (MiniLM) embedding backend exactly.
+# Nothing in the published setup installs these. `python -m venv .venv` plus a
+# lock file gives an environment that runs the whole offline test suite and
+# re-scores the experiment from stored traces. This file exists for the one
+# thing that needs more: reproducing the MiniLM embedding backend that both
+# frozen arms used.
 #
 # Install:
 #   pip install -r constraints/torch-cpu.txt --extra-index-url https://download.pytorch.org/whl/cpu
@@ -27,4 +28,3 @@
 torch==2.9.1+cpu
 transformers==4.57.6
 huggingface-hub==0.36.2
-faiss-cpu==1.13.2

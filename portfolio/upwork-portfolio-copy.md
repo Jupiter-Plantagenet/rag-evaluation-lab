@@ -13,9 +13,20 @@ improved configuration ranks better, no client-work framing, no production claim
 
 ## A. Title
 
-**RAG Evaluation Lab: Grounding, Citations & Regression Testing**
+**RAG Evaluation Lab: Retrieval, Citations & Regression Testing**
 
 *(61 characters — comfortably within Upwork's practical title length.)*
+
+**"Retrieval", not "Grounding".** Grounding implies claim-to-evidence
+entailment, and that is not fully implemented — citation metrics establish that a
+citation *resolves* to a passage the model was shown, not that the passage
+*supports* the claim. The evidence directly supports retrieval,
+citation-resolution, required-fact, abstention, failure-analysis and
+regression-testing claims, and the title now names those.
+
+The repository keeps its existing scientific title
+("RAG Evaluation Lab: Grounding, Citations and Regression Testing"), where the
+surrounding documentation defines the term precisely.
 
 Alternates, if a more result-led title is wanted:
 
@@ -30,42 +41,74 @@ Alternates, if a more result-led title is wanted:
 
 ---
 
-## C. Short description
+## C. Main description — recommended
 
-*(796 characters)*
+Use this as the primary portfolio description.
 
-> I built an evaluation and regression-testing harness for document-grounded RAG —
-> the apparatus that tells you whether a system is actually right, not whether it
-> sounds right. It includes a 50-case versioned benchmark over a synthetic corpus,
-> a 22-case held-out split that is access-logged and frozen, and separate metrics
-> for retrieval, citation quality, abstention behaviour and failure class, with
-> paired-bootstrap confidence intervals on every comparison. Confirmed failures
-> are frozen into offline regression tests.
+> I built an evaluation-first RAG harness for diagnosing retrieval, citation,
+> abstention and regression failures—not another chatbot demo.
 >
-> The most useful result came from auditing my own experiment: a retrieval change
-> that looked like a clear held-out win turned out to be measured against a larger
-> retrieval budget. Once the budget was matched, the intervals included zero. The
-> harness is what made that visible.
+> The project uses a 50-case evaluation suite over a synthetic 14-document
+> corpus, with 28 development and 22 held-out cases. It records structured
+> traces, evaluates retrieval and citation behaviour separately, uses
+> paired-bootstrap confidence intervals for comparisons, and freezes confirmed
+> development failures into offline regression tests.
+>
+> The most useful finding came from auditing my own experiment. An improved
+> configuration initially appeared to raise held-out MRR from 0.667 to 0.835,
+> but it also retrieved twice as many chunks. Once both arms were compared at
+> the same retrieval budget, the interval included zero, so the stronger claim
+> of better held-out ranking was not supported.
+>
+> On similar work I can deliver evaluation datasets, retrieval benchmarks,
+> citation diagnostics, trace instrumentation, failure analysis, regression
+> suites and reproducible technical reports.
+>
+> Self-directed research-engineering case study using a synthetic corpus; not
+> client or production work.
 
 ---
 
-## D. Full description
+## D. Short fallback description
 
-*(1,957 characters)*
+For a description field shorter than the recommended text will fit.
+
+> I built an evaluation-first RAG harness for diagnosing retrieval, citation,
+> abstention and regression failures—not another chatbot demo. It covers a
+> 50-case suite over a synthetic 14-document corpus (28 development, 22
+> held-out), with structured per-case traces, separate retrieval and citation
+> metrics, paired-bootstrap confidence intervals, and confirmed failures frozen
+> into offline regression tests.
+>
+> The most useful finding came from auditing my own experiment. An improved
+> configuration appeared to raise held-out MRR from 0.667 to 0.835, but it also
+> retrieved twice as many chunks; compared at the same retrieval budget, the
+> interval included zero, so the stronger claim of better ranking was not
+> supported.
+>
+> Self-directed research-engineering case study; not client or production work.
+
+---
+
+## D2. Extended description
+
+Only if a long-form field is available. It adds the design rationale the shorter
+versions leave out.
 
 > **The problem.** A RAG system that produces confident, well-cited, wrong answers
 > looks exactly like one that works. Demos, spot checks and "it runs" tell you
-> nothing about grounding, and by the time a user finds the bad answer you have no
-> way to tell whether it was retrieval, ranking, context budget or the model.
+> nothing about whether an answer is supported, and by the time a user finds the
+> bad answer you have no way to tell whether it was retrieval, ranking, context
+> budget or the model.
 >
 > **What I built.** An evaluation-first RAG harness. Two pipelines — a simple
 > baseline and an improved configuration — share one code path and differ only by
-> config, so a measured difference is attributable to the change rather than to
-> two different programs. Every case emits a structured trace: retrieved chunk IDs
-> and scores, the exact context the model saw, parsed claims, citations resolved
-> back to character spans in a named document, tokens, latency and errors. Scoring
-> is a pure function of those traces, so metrics can be corrected and the whole
-> experiment re-scored without re-running a single model call.
+> config, so measured differences can be traced to explicit configuration changes
+> without code-path drift. Every case emits a structured trace: retrieved chunk
+> IDs and scores, the exact context the model saw, parsed claims, citations
+> resolved back to character spans in a named document, tokens, latency and
+> errors. Scoring is a pure function of those traces, so metrics can be corrected
+> and the whole experiment re-scored without re-running a single model call.
 >
 > **How it was evaluated.** A 50-case dataset over a synthetic 14-document corpus,
 > built for difficulty: distractors, multi-hop chains, superseded policy versions,
@@ -73,7 +116,8 @@ Alternates, if a more result-led title is wanted:
 > held-out split without an explicit flag and logs every access, so "we didn't
 > tune on the test set" is checkable rather than asserted. Retrieval, citation,
 > abstention and cost metrics are reported separately — never blended into one
-> score — with paired-bootstrap intervals.
+> score — with paired-bootstrap intervals. Every published metric is
+> deterministic; no result depends on an LLM judge.
 >
 > **What the evaluation revealed.** The improved configuration showed two metrics
 > with intervals excluding zero on held-out data. Auditing my own reporting code
@@ -179,3 +223,6 @@ If this copy is edited, these must not creep back in:
 | "production-ready", "enterprise-grade", "scalable" | no security review, no load testing, no threat model |
 | "client project", "delivered for" | self-directed case study |
 | "CI is green" | no GitHub Actions run has been observed |
+| "a measured difference is attributable to the change" | too strong; say differences "can be traced to explicit configuration changes without code-path drift" |
+| "grounding" in a title or headline claim | implies claim-to-evidence entailment, which is not implemented; say "citations" or "retrieval" |
+| FAISS, LangChain, LlamaIndex, any vector database | none is used; the dense retriever is exact cosine search over a NumPy matrix |

@@ -6,8 +6,9 @@ What is measured, how, and which choices would have flattered the result.
 
 Two arms over the same cases, differing only in retrieval configuration. The
 generator, prompt template and seed are inherited unchanged by the improved arm,
-so a measured difference is attributable to retrieval rather than to a prompt edit
-made at the same time.
+so a measured difference cannot be explained by a prompt edit made at the same
+time. That controls one confound; it is not on its own an attribution claim, and
+audit finding A-13 is the case in point.
 
 | | Baseline | Improved |
 |---|---|---|

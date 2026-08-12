@@ -9,24 +9,30 @@ repository-code: "https://github.com/Jupiter-Plantagenet/rag-evaluation-lab"
 abstract: >-
   A self-directed research-engineering case study in evaluating document-grounded
   retrieval-augmented generation. The repository implements an inspectable
-  evaluation and regression-testing harness rather than a chatbot: it separates
-  retrieval, answer, grounding/citation and system metrics instead of reporting a
-  blended quality score; keeps deterministic metrics apart from model-assisted
-  ones and publishes grader-agreement figures for the latter; captures structured
-  per-case traces; classifies failures under a fixed taxonomy; and converts
-  confirmed failures into regression tests that run offline with no model
+  evaluation and regression-testing harness rather than a chatbot. It reports
+  retrieval, answer, citation and system metrics separately instead of blending
+  them into a single quality score; every published metric is deterministic,
+  computed without consulting a model. It captures one structured trace per case
+  recording the retrieved chunks and scores, the exact context the model was
+  given, the parsed claims and the citations resolved back to character spans in
+  a named source document. Failures are classified automatically from those trace
+  signals under a fixed, cause-ordered taxonomy, and confirmed development-split
+  failures are converted into regression tests that run offline with no model
   credentials. A deliberately simple baseline pipeline is compared against an
   improved pipeline whose interventions were selected from an observed failure
-  distribution on a development split and evaluated on a held-out split frozen
-  beforehand. Evaluated on one synthetic corpus with one embedding model and one
-  generation model; it is a case study, not a benchmark.
+  distribution on the development split, using paired-bootstrap confidence
+  intervals, and evaluated once on a held-out split that was frozen beforehand
+  and is checksummed in the repository. Model-assisted grading is not
+  implemented: no result depends on an LLM judge, and citation metrics establish
+  that a citation resolves to a passage the model was shown rather than that the
+  passage entails the claim. Evaluated on one synthetic corpus with one embedding
+  model and one generation model; it is a case study, not a benchmark.
 keywords:
   - retrieval-augmented generation
   - evaluation
-  - groundedness
-  - citation verification
+  - retrieval metrics
+  - citation resolution
   - regression testing
   - reproducibility
 license: MIT
 version: 0.1.0
-date-released: "2026-08-06"

@@ -15,13 +15,18 @@ question about one:
 7. Did an intervention **measurably** improve anything?
 8. Can a confirmed failure be frozen so it cannot come back?
 
-> **Status: verification complete; portfolio/publication packaging in progress.**
+> **Status: verification and portfolio packaging complete; publication pending
+> GitHub CI.**
 >
 > The experiment is finished and its held-out result is **frozen** — closed
-> evidence, protected by checksums a test verifies. A Phase-4 verification pass
-> then audited the statistics, built the integration and regression suites, ran a
-> development-only ablation, and corrected the public claim boundary. No further
-> scientific development is in scope; what remains is packaging.
+> evidence, protected by checksums a test verifies. A verification pass audited
+> the statistics, built the integration and regression suites, ran a
+> development-only ablation, and corrected the public claim boundary; packaging
+> and a claim-correction pass followed. No further scientific development is in
+> scope.
+>
+> The workflow's commands pass locally. **No GitHub Actions run has been observed
+> yet, so no CI status is claimed** and there is no badge.
 >
 > Questions 1, 3, 5, 6, 7 and 8 are answered by deterministic measurement.
 > Questions 2 and 4 are answered only in part — establishing that a citation
@@ -204,7 +209,7 @@ evidence.
 
 - Two platform locks (`requirements/lock/`), the Linux one hash-pinned and
   cross-compiled so CI never resolves dependencies for itself.
-- `torch`/`transformers`/`faiss` are deliberately **excluded** from both locks and
+- `torch`/`transformers` are deliberately **excluded** from both locks and
   live in `constraints/torch-cpu.txt`. On PyPI's manylinux wheels `torch` is the
   CUDA build, so including it would add ~2.5 GB of `nvidia-*` wheels to every CI
   run. `scripts/assert_ci_env.py` fails the build if any leaks back in.

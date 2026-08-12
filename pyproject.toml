@@ -24,7 +24,7 @@ classifiers = [
 # with no compiler, no CUDA, and no model download. This is the only tier that
 # appears in requirements/lock/*.txt.
 #
-# torch / transformers / faiss-cpu are DELIBERATELY ABSENT. See [.local] below
+# torch / transformers are DELIBERATELY ABSENT. See [.local] below
 # and constraints/torch-cpu.txt for why.
 # ---------------------------------------------------------------------------
 dependencies = [
@@ -47,10 +47,11 @@ dependencies = [
 #
 # On PyPI's manylinux wheels, `torch` is the CUDA build: putting it in Tier 1
 # would make `uv pip compile --python-platform linux` pull ~2.5 GB of nvidia-*
-# wheels into CI. It is also already present in the Anaconda base environment
-# this project's venv inherits via --system-site-packages, so installing it
-# here would be a 453 MB no-op at best and a downgrade at worst (`2.9.1+cpu`
-# and `2.9.1` are different versions to pip).
+# wheels into CI. CI never needs it -- it runs the tfidf_svd embedding backend
+# -- so torch is installed only when someone wants the MiniLM backend, via the
+# explicit command below. Note that `2.9.1+cpu` and `2.9.1` are different
+# versions to pip, which is why the pin lives in a constraints file rather
+# than in a lock.
 #
 # Install with:
 #   pip install -r constraints/torch-cpu.txt --extra-index-url https://download.pytorch.org/whl/cpu
@@ -58,7 +59,6 @@ local = [
   "torch==2.9.1+cpu",
   "transformers==4.57.6",
   "huggingface-hub>=0.36",
-  "faiss-cpu==1.13.2",
 ]
 
 # Used only to prove our hand-written MiniLM mean-pooling matches the reference
@@ -93,11 +93,14 @@ rag_eval = ["py.typed", "generation/prompts/*.jinja", "reporting/templates/*"]
 # ---------------------------------------------------------------------------
 # The `-p no:` flags are load-bearing, not tidiness.
 #
-# This project's venv inherits Anaconda's site-packages, where three packages
-# register a `pytest11` entry point. One of them -- web3 6.11.3's
-# `pytest_ethereum` -- crashes on import against eth-typing 5.2.1:
+# Plugin autoload is a sys.path scan for `pytest11` entry points, so pytest
+# loads whatever it can see. A clean `python -m venv .venv` (the documented
+# setup) sees none of these, and the flags are then inert -- they are kept as
+# a defensive compatibility guard, because the failure they prevent is fatal
+# and silent-looking. It was hit for real during development on an interpreter
+# that could see web3 6.11.3, whose `pytest_ethereum` plugin raises on import
+# against eth-typing 5.2.1:
 #     ImportError: cannot import name 'ContractName' from 'eth_typing'
-# Plugin autoload is a sys.path scan, so a venv cannot escape it.
 #
 # Why HERE and not conftest.py: conftest is collected AFTER
 # load_setuptools_entrypoints("pytest11"), so by then the process has already
@@ -181,7 +184,6 @@ strict = false
 # depends on which optional packages happen to be present is not a check.
 # Skipping the imports makes both environments agree.
 module = [
-  "faiss.*",
   "transformers.*",
   "torch.*",
   "sklearn.*",

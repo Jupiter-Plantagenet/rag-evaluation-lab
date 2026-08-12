@@ -20,7 +20,14 @@ import importlib.util
 import os
 import sys
 
-# Tier 2 packages. Present locally via --system-site-packages; must be absent in CI.
+# Tier 2 packages. Absent from both lock files, so a clean CI environment must
+# not be able to import them. They ARE importable on a machine where someone
+# installed constraints/torch-cpu.txt to run the MiniLM backend, or on an
+# interpreter with a system Python's packages in scope -- which is why this
+# script is a CI check and is expected to fail on such a development machine.
+# `faiss` is no longer a declared dependency of this project at all -- it is kept
+# in the list as a regression guard, since a transitive dependency could
+# reintroduce it and the symptom would again be a CI timeout far from the cause.
 FORBIDDEN_IN_CI = ("torch", "transformers", "faiss", "sentence_transformers")
 
 # If any of these is set in CI, the offline guarantee is not a guarantee.

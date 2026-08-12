@@ -8,7 +8,7 @@ change, no social post, no landing page, no outreach.
 
 | # | Check | Result |
 |---|---|---|
-| 1 | README status current | **PASS** — reads "verification complete; portfolio/publication packaging in progress" |
+| 1 | README status current | **PASS** — reads "verification and portfolio packaging complete; publication pending GitHub CI" |
 | 2 | Claims match `docs/results.md` | **PASS** — see [claim trace](#claim-trace) |
 | 3 | No frozen artefact changed | **PASS** — 10/10 checksums match; `git diff f4ac2b1 HEAD` over frozen paths is empty |
 | 4 | No secret committed | **PASS with one note** — see [secret scan](#secret-scan) |
@@ -16,7 +16,7 @@ change, no social post, no landing page, no outreach.
 | 6 | No private information | **PASS** — only the author's own public GitHub handle |
 | 7 | Synthetic corpus labelled | **PASS** — front matter, README, case study, and visual 1 |
 | 8 | LICENSE correct | **PASS** — MIT (code) + CC BY 4.0 (corpus) |
-| 9 | CITATION.cff correct | **PASS** — title, author, repository-code, abstract all current |
+| 9 | CITATION.cff correct | **PASS after fix** — abstract rewritten; `date-released` removed |
 | 10 | Links relative and valid | **PASS** — every internal link in README, `docs/` and `portfolio/` resolves |
 | 11 | Images readable | **PASS** — 4 × 1600×1200 (4:3), 163–280 KB PNG, layout guard clean |
 | 12 | Upwork copy truthful | **PASS** — every claim traceable; character counts verified |
@@ -24,6 +24,42 @@ change, no social post, no landing page, no outreach.
 | 14 | No client-work claim | **PASS** — "self-directed research-engineering case study" throughout |
 | 15 | No significance / SOTA terminology | **PASS** — appears only inside prohibition lists |
 | 16 | No misleading bare percentage | **PASS** — no "improved X by N%" anywhere |
+| 17 | CITATION.cff describes only implemented functionality | **PASS after fix** — see [correction pass](#correction-pass) |
+| 18 | No unused declared dependency | **PASS after fix** — `faiss-cpu` removed |
+| 19 | Environment comments match the published setup | **PASS after fix** — 6 files corrected |
+
+---
+
+## Correction pass
+
+An independent review of `d540134` found claim/documentation inconsistencies.
+All were fixed in one bounded pass; no frozen artefact, corpus byte, dataset byte,
+experiment output or pipeline configuration was touched.
+
+| Finding | Fix |
+|---|---|
+| `CITATION.cff` claimed the harness "keeps deterministic metrics apart from model-assisted ones and publishes grader-agreement figures for the latter" | Abstract rewritten to describe only implemented functionality, and now states explicitly that model-assisted grading is **not** implemented and that citation metrics establish resolution rather than entailment |
+| `CITATION.cff` carried `date-released: "2026-08-06"` — the experiment date, for a release that has not happened | Field removed. CFF 1.2.0 makes it optional; it should be set when a release actually occurs |
+| `faiss-cpu` was declared in `[project.optional-dependencies].local`, `constraints/torch-cpu.txt` and a mypy override, but no source, test or reproduction command imports it — the dense retriever is exact cosine search over a NumPy matrix | Removed from all three, plus the vestigial `*.faiss` patterns in `.gitignore`/`.gitattributes` and the stale mentions in `README.md`, `docs/reproduction.md` and the CI workflow comment. Kept in `assert_ci_env.py`'s forbidden list as a regression guard, with a comment saying why |
+| Six files described a `--system-site-packages` / inherited-Anaconda environment that the published setup (`python -m venv .venv`) does not use | Comments corrected in `pyproject.toml` (×2), `constraints/torch-cpu.txt`, `requirements/core.in`, `scripts/assert_ci_env.py`, `tests/unit/test_pytest_plugin_guard.py`. The pytest `-p no:` blocks were **kept** as defensive compatibility guards and are now documented as inert in a clean environment |
+| The Upwork description said a measured difference "is attributable to the change rather than to two different programs" — stronger than the experiment supports | Replaced with "measured differences can be traced to explicit configuration changes without code-path drift". The same construction in `docs/evaluation-methodology.md` was softened for consistency |
+| The recommended Upwork title led with "Grounding", which implies claim-to-evidence entailment | Changed to **RAG Evaluation Lab: Retrieval, Citations & Regression Testing**. The repository keeps its scientific title, where the surrounding documentation defines the term |
+
+The FAISS mention that remains in `portfolio/upwork-portfolio-copy.md` is in the
+explicit *"not used, and therefore not listed"* line, which is accurate and
+worth keeping. The mentions in `docs/source-project-audit.md` describe the
+**predecessor** project, which genuinely used LangChain and FAISS.
+
+### Re-checked after the corrections
+
+Nine claim categories were re-scanned across every tracked Markdown, TOML, YAML,
+Python and requirements file: model-assisted grading, grader agreement, FAISS,
+system-site-packages, Anaconda inheritance, production readiness, client-work
+wording, CI status, and semantic entailment.
+
+Twenty-one raw hits, **zero contradictions** — every one is a negation ("not
+production-ready", "Not client work"), a prohibition-list entry, or an accurate
+statement about the audited predecessor project.
 
 ---
 

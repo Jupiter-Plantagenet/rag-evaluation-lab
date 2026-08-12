@@ -72,7 +72,7 @@ jobs:
           python -m pip install -r requirements/lock/linux-py312.txt
           python -m pip install -e . --no-deps
 
-      # Fails the build if torch/transformers/faiss leak into the CI resolution.
+      # Fails the build if torch/transformers leak into the CI resolution.
       # Without this guard a transitive dependency can silently pull ~2.5 GB of
       # nvidia-* CUDA wheels, and the symptom is a timeout minutes from the cause.
       - name: Assert CI environment is torch-free and credential-free

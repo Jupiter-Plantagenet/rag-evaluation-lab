@@ -1,6 +1,6 @@
-﻿# TIER 1 core -- CI-safe. Pinned to the versions present in the Anaconda base
-# environment so that `pip install -r lock` is a no-op locally (nothing is
-# re-downloaded) while CI installs them cleanly from PyPI wheels.
+﻿# TIER 1 core -- CI-safe. Exact pins, so that a clean `python -m venv .venv`
+# plus `pip install -r requirements/lock/<platform>.txt` gives every machine
+# and CI the same versions.
 numpy==1.26.4
 scipy==1.17.1
 scikit-learn==1.8.0
