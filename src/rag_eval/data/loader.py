@@ -1,7 +1,6 @@
 """The only reader of the evaluation dataset, and the guard on the held-out split.
 
-Every claim this project makes about not tuning on held-out data rests on this
-module. The guarantee is deliberately mechanical rather than procedural:
+This module provides procedural discipline for documented experimental runs:
 
   - ``load_cases()`` returns dev cases. Asking for the test split without
     ``allow_test=True`` raises. There is no flag on the object, no default that
@@ -9,10 +8,9 @@ module. The guarantee is deliberately mechanical rather than procedural:
   - Every access to the test split appends a line to ``runs/.test_ledger.jsonl``
     recording who asked, when, and why. The report prints that count.
 
-The ledger is the part that matters. A guard that merely blocks access proves
-nothing after the fact -- anyone can pass the flag. A guard that *counts* access
-turns "the split stayed frozen" into a number a reviewer can look at, and a
-number that grows during development is visible evidence that it did not.
+The guard does not make the committed data physically inaccessible. It documents
+the experimental run path; the ledger records accesses through that path and can
+be checked alongside the stated chronology in Git history.
 """
 
 from __future__ import annotations

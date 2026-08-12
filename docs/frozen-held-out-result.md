@@ -1,5 +1,11 @@
 # Frozen held-out result
 
+> **Historical frozen record.** This document preserves the original held-out
+> result as recorded at freeze time. Some metric definitions and interpretations
+> were subsequently corrected or withdrawn. For the current conclusions, use the
+> [corrected-v2 report](../reports/corrected-v2/held-out/comparison.md) and
+> [correction note](corrected-release-v2.md).
+
 The held-out evaluation is **closed evidence**. This file exists so that any later
 reader — including the author — can prove the numbers were not adjusted after they
 were seen.

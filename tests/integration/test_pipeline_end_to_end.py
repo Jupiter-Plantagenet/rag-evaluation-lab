@@ -23,7 +23,7 @@ from typing import Any
 import pytest
 
 from rag_eval.evaluation import metrics as M  # noqa: N812 - matches the runner's convention
-from rag_eval.runner import score_record
+from rag_eval.runner import score_record, summarise
 from rag_eval.tracing.schema import TraceWriter, read_traces, record_from_output
 from rag_eval.types import EvalCase
 
@@ -97,6 +97,7 @@ def test_complete_offline_pipeline_from_corpus_to_metrics(
         started_at=started,
     )
     record.metrics = score_record(record, case, 0.5, [1, 3, 5, 10])
+    assert not any(name.startswith("ndcg_at_") for name in record.metrics)
 
     trace_path = tmp_path / "trace.jsonl"
     with TraceWriter(trace_path) as writer:
@@ -112,6 +113,11 @@ def test_complete_offline_pipeline_from_corpus_to_metrics(
     assert reloaded["metrics"]["n_fabricated"] == 0
     assert reloaded["metrics"]["required_fact_coverage"] == 1.0
     assert reloaded["metrics"]["abstention_correct"] is True
+    assert not any(name.startswith("ndcg_at_") for name in reloaded["metrics"])
+
+    summary = summarise([record], [case], pipeline.config)
+    assert not any(name.startswith("ndcg_at_") for name in summary)
+    assert not any(name.startswith("ndcg_at_") for name in summary["cases"][case.id])
 
     # JSON, not repr: the trace is a data contract other tools read.
     assert json.loads(trace_path.read_text(encoding="utf-8").strip())["run_id"] == "itest-0001"

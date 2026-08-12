@@ -40,7 +40,6 @@ Rules are checked in **cause** order, not severity order:
     over_abstention                 expected answer, abstained (recall was 1.0)
 3.  policy_version_confusion        temporal case with a forbidden claim
 4.  citation_unresolvable           a fabricated citation
-    citation_non_authoritative      citation_stress case citing a restating doc
 5.  unsupported_claim               a forbidden claim
     aggregation_error               coverage < 1, aggregation category
     incomplete_answer               coverage < 1, otherwise
@@ -88,7 +87,6 @@ mode was *looked for*.
 | `ambiguity_collapse` | Picked one reading of an ambiguous question without flagging it. |
 | `citation_missing` | Substantive claims carry no citation. |
 | `citation_unresolvable` | A cited label maps to no chunk the model was shown. |
-| `citation_non_authoritative` | Cited a restating document when an authoritative one exists. |
 | `format_violation` | Output violated the response contract. |
 | `pipeline_error` | The pipeline raised before producing an answer. |
 

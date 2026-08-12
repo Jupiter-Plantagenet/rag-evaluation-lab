@@ -94,8 +94,9 @@ rather than silently reusing answers generated from different instructions. Ther
 is no TTL: a research cache that expires on a timer destroys reproducibility on a
 timer.
 
-On a cache miss while offline the pipeline **raises**. A silent fallback would let
-CI report metrics for a system that never ran.
+On a cache miss while offline the pipeline **raises**. CI integration tests use
+deterministic scripted responses rather than a replay cache of original provider
+calls.
 
 ## Where the seams are
 
@@ -113,9 +114,8 @@ failure requires knowing which member surfaced a chunk and which buried it.
 
 ## What is not here
 
-- **No judge.** `src/rag_eval/judge/` is an empty package. Every result is
-  deterministic.
-- **No demo UI.** `src/rag_eval/demo/` is an empty package.
+- **No semantic model-assisted grading.** Every current result is deterministic.
+- **No demo UI.**
 - **No reranker, no query rewriting, no decomposition.** Deliberately: the
   measured baseline failure profile did not demand them, and adding them would
   have made the architecture look sophisticated while confounding the measurement.

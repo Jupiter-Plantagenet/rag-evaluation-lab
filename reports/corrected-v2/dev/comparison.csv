@@ -1,0 +1,9 @@
+analysis,metric,n_paired,baseline,improved,delta,ci_low,ci_high,ci_excludes_zero,direction
+configured_system_outcomes,recall,28,0.5298,0.7381,0.2083,0.0476,0.375,True,improved
+configured_system_outcomes,mrr,28,0.4345,0.581,0.1465,0.0274,0.273,True,improved
+configured_system_outcomes,precision,28,0.1875,0.1295,-0.058,-0.1116,-0.0045,True,regressed
+configured_system_outcomes,document_recall,25,0.84,0.9333,0.0933,-0.0067,0.2067,False,no measurable difference
+common_budget_ranking_sensitivity,recall,28,0.5298,0.6488,0.119,-0.0357,0.2798,False,no measurable difference
+common_budget_ranking_sensitivity,mrr,28,0.4345,0.5655,0.131,0.006,0.2619,True,improved
+common_budget_ranking_sensitivity,precision,28,0.1875,0.2143,0.0268,-0.0357,0.0893,False,no measurable difference
+common_budget_ranking_sensitivity,document_recall,25,0.84,0.8933,0.0533,-0.08,0.1867,False,no measurable difference

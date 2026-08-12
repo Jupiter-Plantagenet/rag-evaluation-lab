@@ -196,7 +196,7 @@ STAGES_BOTTOM = [
 
 def visual_1_cover() -> tuple[Path, Path]:
     fig, ax = canvas()
-    header(ax, "RAG Evaluation Lab", "Grounding, Citations & Regression Testing")
+    header(ax, "RAG Evaluation Lab", "Retrieval, Citations & Regression Testing")
 
     bw, bh, gap = 348, 168, 32
     y1 = 330
@@ -402,11 +402,11 @@ STEPS = [
         "3 | 15 | unlimited — unlabelled",
         WARN,
     ),
-    ("3  Diagnosed failure class", "unsupported_claim", "baseline MRR 0.333", WARN),
+    ("3  Observed failure class", "unsupported_claim", "baseline MRR 0.333", WARN),
     (
         "4  Intervention",
-        "Structure-aware chunking:\nsplit on headings, tables atomic,\nheading path carried into context",
-        "intervention 1 of 4",
+        "Diagnosed mechanism:\nfixed chunks separated the answer\nrow from its column headers",
+        "table-context mechanism",
         INK,
     ),
     (
@@ -468,7 +468,7 @@ def visual_3_regression() -> tuple[Path, Path]:
 
     y = 1010
     panel(ax, 60, y, W - 120, 96, face=PANEL)
-    text(ax, 96, y + 48, "164", size=34, weight="bold", color=IMPR)
+    text(ax, 96, y + 48, "174", size=34, weight="bold", color=IMPR)
     text(ax, 214, y + 48, "offline tests passed", size=22)
     text(ax, 540, y + 48, "3", size=34, weight="bold", color=MUTED)
     text(
@@ -484,7 +484,7 @@ def visual_3_regression() -> tuple[Path, Path]:
         ax,
         1150,
         y + 48,
-        "GitHub Actions has not been run;\nno CI status is claimed.",
+        "Linux + Windows CI\nconfigured.",
         size=18,
         color=MUTED,
         linespacing=1.4,
@@ -513,7 +513,7 @@ def visual_4_ablation() -> tuple[Path, Path]:
     fig, ax = canvas()
     header(
         ax,
-        "Which component actually helped?",
+        "Development-only retrieval ablation",
         "Retrieval-only ablation at a matched budget of k = 4",
         kicker="development split — explanatory, not held-out evidence",
     )
@@ -588,7 +588,7 @@ def visual_4_ablation() -> tuple[Path, Path]:
             ax,
             70,
             1006,
-            "Structure-aware chunking accounts for most of the gain.\n"
+            "Structure-aware chunking produced the largest positive descriptive change.\n"
             "Hybrid retrieval alone is worse than the baseline on MRR, recall@1 and recall@3.",
             size=23,
             linespacing=1.6,
@@ -612,6 +612,7 @@ def verify_against_reports() -> list[str]:
     """Fail loudly if a figure has drifted from the committed results."""
     problems: list[str] = []
 
+    # Visual 2 deliberately preserves the historical configured-system finding.
     held = json.loads((REPO_ROOT / "reports" / "held-out" / "comparison.json").read_text("utf-8"))
     by_metric = {m["metric"]: m for m in held["metrics"]}
     for label, base, impr, delta, lo, hi in ORIGINAL:

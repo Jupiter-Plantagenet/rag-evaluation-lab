@@ -126,6 +126,32 @@ def test_ndcg_rewards_ranking_evidence_higher() -> None:
 
 
 @pytest.mark.unit
+def test_ndcg_duplicate_overlapping_chunks_cannot_multiply_one_evidence_unit() -> None:
+    case = make_case(expected_evidence_spans=(EvidenceSpan("doc-a", "q", 100, 200),))
+    duplicated = [chunk(1, "doc-a", 100, 200), chunk(2, "doc-a", 110, 190)]
+    assert ndcg_at_k(case, duplicated, 5, 0.5) == pytest.approx(1.0)
+
+
+@pytest.mark.unit
+def test_ndcg_is_bounded_for_duplicate_and_multihop_evidence() -> None:
+    case = make_case(
+        expected_evidence_spans=(
+            EvidenceSpan("doc-a", "first", 0, 100),
+            EvidenceSpan("doc-b", "second", 0, 100),
+        )
+    )
+    retrieved = [
+        chunk(1, "doc-a", 0, 100),
+        chunk(2, "doc-a", 10, 90),
+        chunk(3, "doc-b", 0, 100),
+        chunk(4, "doc-b", 10, 90),
+    ]
+    score = ndcg_at_k(case, retrieved, 5, 0.5)
+    assert score is not None and 0.0 <= score <= 1.0
+    assert score == pytest.approx((1 + 1 / math.log2(4)) / (1 + 1 / math.log2(3)))
+
+
+@pytest.mark.unit
 def test_precision_falls_as_k_rises() -> None:
     """The trade-off that makes precision worth reporting next to recall."""
     case = make_case(expected_evidence_spans=(EvidenceSpan("doc-a", "q", 0, 100),))
@@ -255,6 +281,22 @@ def test_claim_coverage_ignores_trivially_short_claims() -> None:
     ]
     citations = [{"claim_id": "cl0", "resolved": True, "doc_id": "doc-a", "authoritative": True}]
     assert citation_metrics(case, citations, claims)["claim_citation_coverage"] == 1.0
+
+
+@pytest.mark.unit
+def test_document_level_authority_is_not_a_current_citation_quality_metric() -> None:
+    case = make_case(expected_document_ids=("policy-archive-2024",))
+    citations = [
+        {
+            "claim_id": "cl0",
+            "resolved": True,
+            "doc_id": "policy-archive-2024",
+            "authoritative": False,
+        }
+    ]
+    claims = [{"claim_id": "cl0", "text": "A historical policy claim with enough words"}]
+    metrics = citation_metrics(case, citations, claims)
+    assert "n_non_authoritative" not in metrics
 
 
 # --- aggregation -------------------------------------------------------------

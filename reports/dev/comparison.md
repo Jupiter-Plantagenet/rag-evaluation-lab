@@ -8,7 +8,7 @@
 
 All intervals are 95% paired bootstrap CIs on the per-case difference. **An interval containing zero is reported as no measurable difference, not as an improvement.**
 
-A verdict of **improved** means only that the paired-bootstrap 95% CI excluded zero. It is not a significance test: there is no null model, no p-value, and no correction for the fact that 12 metrics are compared here. Under the global null one would expect roughly 0.6 of 12 intervals to exclude zero by chance. Read the direction and magnitude together with the interval width.
+A verdict of **improved** means only that the paired-bootstrap 95% CI excluded zero. It is not a significance test: there is no null model, no p-value, and no correction for the fact that 10 metrics are compared here. Under the global null one would expect roughly 0.5 of 10 intervals to exclude zero by chance. Read the direction and magnitude together with the interval width.
 
 ## Deterministic metrics
 
@@ -18,8 +18,6 @@ A verdict of **improved** means only that the paired-bootstrap 95% CI excluded z
 | recall_at_3 | 28 | 0.530 | 0.637 | +0.107 | [-0.042, +0.262] | no measurable difference |
 | recall_at_5 | 28 | 0.530 | 0.649 | +0.119 | [-0.036, +0.280] | no measurable difference |
 | recall_at_10 | 28 | 0.530 | 0.738 | +0.208 | [+0.048, +0.375] | **improved** |
-| precision_at_5 | 28 | 0.188 | 0.171 | -0.016 | [-0.071, +0.041] | no measurable difference |
-| ndcg_at_5 | 28 | 0.437 | 0.531 | +0.093 | [-0.029, +0.221] | no measurable difference |
 | mrr | 28 | 0.434 | 0.581 | +0.146 | [+0.027, +0.273] | **improved** |
 | document_recall | 25 | 0.840 | 0.933 | +0.093 | [-0.007, +0.207] | no measurable difference |
 | required_fact_coverage | 25 | 0.720 | 0.853 | +0.133 | [+0.033, +0.260] | **improved** |
@@ -32,7 +30,6 @@ A verdict of **improved** means only that the paired-bootstrap 95% CI excluded z
 | Counter | Baseline | Improved | Change |
 |---|---:|---:|---:|
 | n_fabricated | 0 | 0 | +0 |
-| n_non_authoritative | 2 | 3 | +1 <- worse |
 | forbidden_claims | 6 | 7 | +1 <- worse |
 
 ## Abstention behaviour

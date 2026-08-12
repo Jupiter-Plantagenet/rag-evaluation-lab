@@ -30,24 +30,24 @@
 
 ## Retrieval metrics
 
-| | Variant | recall_at_1 | recall_at_3 | recall_at_5 | recall_at_10 | mrr | precision_at_5 | ndcg_at_5 | document_recall | mean ms |
-|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| A | baseline | 0.226 | 0.530 | 0.530 | 0.530 | 0.435 | 0.188 | 0.437 | 0.840 | 24.75 |
-| B | structure-only | 0.387 | 0.554 | 0.637 | 0.637 | 0.574 | 0.223 | 0.538 | 0.913 | 24.41 |
-| C | hybrid-only | 0.214 | 0.470 | 0.500 | 0.500 | 0.399 | 0.196 | 0.433 | 0.860 | 46.4 |
-| D | budget-only | 0.226 | 0.530 | 0.554 | 0.583 | 0.440 | 0.164 | 0.450 | 0.927 | 48.89 |
-| E | structure+hybrid | 0.333 | 0.637 | 0.649 | 0.649 | 0.565 | 0.214 | 0.531 | 0.893 | 36.73 |
-| F | full improved | 0.333 | 0.637 | 0.649 | 0.738 | 0.581 | 0.171 | 0.531 | 0.933 | 88.61 |
+| | Variant | recall_at_1 | recall_at_3 | recall_at_5 | recall_at_10 | mrr | precision_at_4 | document_recall | mean ms |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| A | baseline | 0.226 | 0.530 | 0.530 | 0.530 | 0.435 | 0.188 | 0.840 | 41.31 |
+| B | structure-only | 0.387 | 0.554 | 0.637 | 0.637 | 0.574 | 0.223 | 0.913 | 39.57 |
+| C | hybrid-only | 0.214 | 0.470 | 0.500 | 0.500 | 0.399 | 0.196 | 0.860 | 48.83 |
+| D | budget-only | 0.226 | 0.530 | 0.554 | 0.583 | 0.440 | 0.188 | 0.927 | 41.23 |
+| E | structure+hybrid | 0.333 | 0.637 | 0.649 | 0.649 | 0.565 | 0.214 | 0.893 | 32.9 |
+| F | full improved | 0.333 | 0.637 | 0.649 | 0.738 | 0.581 | 0.214 | 0.933 | 55.81 |
 
 ## Change from A (baseline)
 
-| | Variant | recall_at_1 | recall_at_3 | recall_at_5 | recall_at_10 | mrr | precision_at_5 | ndcg_at_5 | document_recall |
-|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| B | structure-only | +0.161 | +0.024 | +0.107 | +0.107 | +0.140 | +0.036 | +0.101 | +0.073 |
-| C | hybrid-only | -0.012 | -0.060 | -0.030 | -0.030 | -0.036 | +0.009 | -0.005 | +0.020 |
-| D | budget-only | +0.000 | +0.000 | +0.024 | +0.054 | +0.005 | -0.023 | +0.013 | +0.087 |
-| E | structure+hybrid | +0.107 | +0.107 | +0.119 | +0.119 | +0.131 | +0.027 | +0.093 | +0.053 |
-| F | full improved | +0.107 | +0.107 | +0.119 | +0.208 | +0.146 | -0.016 | +0.093 | +0.093 |
+| | Variant | recall_at_1 | recall_at_3 | recall_at_5 | recall_at_10 | mrr | precision_at_4 | document_recall |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| B | structure-only | +0.161 | +0.024 | +0.107 | +0.107 | +0.140 | +0.036 | +0.073 |
+| C | hybrid-only | -0.012 | -0.060 | -0.030 | -0.030 | -0.036 | +0.009 | +0.020 |
+| D | budget-only | +0.000 | +0.000 | +0.024 | +0.054 | +0.005 | +0.000 | +0.087 |
+| E | structure+hybrid | +0.107 | +0.107 | +0.119 | +0.119 | +0.131 | +0.027 | +0.053 |
+| F | full improved | +0.107 | +0.107 | +0.119 | +0.208 | +0.146 | +0.027 | +0.093 |
 
 ## Reading `recall_at_10`
 
@@ -63,19 +63,19 @@ A, B, C and E all retrieve four chunks, so every column below is a like-for-like
 comparison and any difference is attributable to chunking or fusion rather than
 to how much context the variant was allowed.
 
-| | Variant | recall_at_1 | recall_at_3 | mrr | ndcg_at_5 | precision_at_5 |
+| | Variant | recall_at_1 | recall_at_3 | mrr | precision_at_4 | document_recall |
 |---|---|---:|---:|---:|---:|---:|
-| A | baseline | 0.226 | 0.530 | 0.435 | 0.437 | 0.188 |
-| B | structure-only | 0.387 | 0.554 | 0.574 | 0.538 | 0.223 |
-| C | hybrid-only | 0.214 | 0.470 | 0.399 | 0.433 | 0.196 |
-| E | structure+hybrid | 0.333 | 0.637 | 0.565 | 0.531 | 0.214 |
+| A | baseline | 0.226 | 0.530 | 0.435 | 0.188 | 0.840 |
+| B | structure-only | 0.387 | 0.554 | 0.574 | 0.223 | 0.913 |
+| C | hybrid-only | 0.214 | 0.470 | 0.399 | 0.196 | 0.860 |
+| E | structure+hybrid | 0.333 | 0.637 | 0.565 | 0.214 | 0.893 |
 
 ## The budget component, isolated
 
 Two pairs differ only by `top_k` (and, for E->F, the near-duplicate removal that
 only becomes active at the larger k).
 
-| Pair | Change | recall_at_1 | recall_at_3 | recall_at_10 | mrr | precision_at_5 | document_recall |
+| Pair | Change | recall_at_1 | recall_at_3 | recall_at_10 | mrr | precision_at_4 | document_recall |
 |---|---|---:|---:|---:|---:|---:|---:|
-| A -> D | k 4->8, fixed+dense | +0.000 | +0.000 | +0.054 | +0.005 | -0.023 | +0.087 |
-| E -> F | k 4->8 + dedupe | +0.000 | +0.000 | +0.089 | +0.016 | -0.043 | +0.040 |
+| A -> D | k 4->8, fixed+dense | +0.000 | +0.000 | +0.054 | +0.005 | +0.000 | +0.087 |
+| E -> F | k 4->8 + dedupe | +0.000 | +0.000 | +0.089 | +0.016 | +0.000 | +0.040 |

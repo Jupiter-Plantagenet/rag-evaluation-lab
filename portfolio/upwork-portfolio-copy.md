@@ -1,228 +1,43 @@
-# Upwork portfolio copy
+# Upwork portfolio copy (draft for review)
 
-Ready-to-paste text for a portfolio item. Nothing here has been posted; this is a
-draft for review.
+## Title
 
-Every factual claim below is traceable to [`docs/results.md`](../docs/results.md).
-The phrasing rules in
-[`results.md`](../docs/results.md#required-phrasing) were applied: no
-"statistically significant", no bare percentage improvements, no claim that the
-improved configuration ranks better, no client-work framing, no production claim.
+**RAG Evaluation & Reliability — Retrieval, Citations, Regression Tests**
 
----
+## Description
 
-## A. Title
+RAG systems can produce plausible answers while failing retrieval, source
+attribution, abstention, or regression behaviour. I build evaluation and
+reliability tooling that makes those failures measurable and actionable.
 
-**RAG Evaluation Lab: Retrieval, Citations & Regression Testing**
+I can deliver an evaluation dataset, retrieval benchmark, citation/evidence
+diagnostics, trace instrumentation, failure analysis, paired before/after
+evaluation, regression suite, and reproducible technical report.
 
-*(61 characters — comfortably within Upwork's practical title length.)*
+In this case study, a retrieval change initially looked better until evaluation
+controlled for the fact that it retrieved twice as much context. The audit
+prevented additional context budget from being mistaken for proven ranking
+improvement.
 
-**"Retrieval", not "Grounding".** Grounding implies claim-to-evidence
-entailment, and that is not fully implemented — citation metrics establish that a
-citation *resolves* to a passage the model was shown, not that the passage
-*supports* the claim. The evidence directly supports retrieval,
-citation-resolution, required-fact, abstention, failure-analysis and
-regression-testing claims, and the title now names those.
+Self-directed research-engineering case study using a controlled synthetic
+corpus; not a prior client deployment.
 
-The repository keeps its existing scientific title
-("RAG Evaluation Lab: Grounding, Citations and Regression Testing"), where the
-surrounding documentation defines the term precisely.
+## Short version
 
-Alternates, if a more result-led title is wanted:
+I build RAG evaluation and reliability tooling: evidence-anchored test sets,
+retrieval and citation diagnostics, per-case traces, failure analysis, paired
+reports, and regression tests. In this case study, an apparent retrieval win was
+reframed after a common-budget audit showed that more context had not established
+better held-out ranking.
 
-- `RAG Evaluation Harness: Retrieval, Citation & Regression Testing` (64)
-- `Evaluation-First RAG: Auditing an Apparent Retrieval Improvement` (64)
+## Deliverables
 
----
+- Evaluation datasets and retrieval benchmarks
+- Citation-resolution and evidence diagnostics
+- Per-case trace instrumentation
+- Failure analysis and regression tests
+- Paired before/after evaluations
+- Reproducible technical reports
 
-## B. Role
-
-**Research Software Engineer**
-
----
-
-## C. Main description — recommended
-
-Use this as the primary portfolio description.
-
-> I built an evaluation-first RAG harness for diagnosing retrieval, citation,
-> abstention and regression failures—not another chatbot demo.
->
-> The project uses a 50-case evaluation suite over a synthetic 14-document
-> corpus, with 28 development and 22 held-out cases. It records structured
-> traces, evaluates retrieval and citation behaviour separately, uses
-> paired-bootstrap confidence intervals for comparisons, and freezes confirmed
-> development failures into offline regression tests.
->
-> The most useful finding came from auditing my own experiment. An improved
-> configuration initially appeared to raise held-out MRR from 0.667 to 0.835,
-> but it also retrieved twice as many chunks. Once both arms were compared at
-> the same retrieval budget, the interval included zero, so the stronger claim
-> of better held-out ranking was not supported.
->
-> On similar work I can deliver evaluation datasets, retrieval benchmarks,
-> citation diagnostics, trace instrumentation, failure analysis, regression
-> suites and reproducible technical reports.
->
-> Self-directed research-engineering case study using a synthetic corpus; not
-> client or production work.
-
----
-
-## D. Short fallback description
-
-For a description field shorter than the recommended text will fit.
-
-> I built an evaluation-first RAG harness for diagnosing retrieval, citation,
-> abstention and regression failures—not another chatbot demo. It covers a
-> 50-case suite over a synthetic 14-document corpus (28 development, 22
-> held-out), with structured per-case traces, separate retrieval and citation
-> metrics, paired-bootstrap confidence intervals, and confirmed failures frozen
-> into offline regression tests.
->
-> The most useful finding came from auditing my own experiment. An improved
-> configuration appeared to raise held-out MRR from 0.667 to 0.835, but it also
-> retrieved twice as many chunks; compared at the same retrieval budget, the
-> interval included zero, so the stronger claim of better ranking was not
-> supported.
->
-> Self-directed research-engineering case study; not client or production work.
-
----
-
-## D2. Extended description
-
-Only if a long-form field is available. It adds the design rationale the shorter
-versions leave out.
-
-> **The problem.** A RAG system that produces confident, well-cited, wrong answers
-> looks exactly like one that works. Demos, spot checks and "it runs" tell you
-> nothing about whether an answer is supported, and by the time a user finds the
-> bad answer you have no way to tell whether it was retrieval, ranking, context
-> budget or the model.
->
-> **What I built.** An evaluation-first RAG harness. Two pipelines — a simple
-> baseline and an improved configuration — share one code path and differ only by
-> config, so measured differences can be traced to explicit configuration changes
-> without code-path drift. Every case emits a structured trace: retrieved chunk
-> IDs and scores, the exact context the model saw, parsed claims, citations
-> resolved back to character spans in a named document, tokens, latency and
-> errors. Scoring is a pure function of those traces, so metrics can be corrected
-> and the whole experiment re-scored without re-running a single model call.
->
-> **How it was evaluated.** A 50-case dataset over a synthetic 14-document corpus,
-> built for difficulty: distractors, multi-hop chains, superseded policy versions,
-> deliberate gaps. 28 development cases, 22 held out. The loader refuses the
-> held-out split without an explicit flag and logs every access, so "we didn't
-> tune on the test set" is checkable rather than asserted. Retrieval, citation,
-> abstention and cost metrics are reported separately — never blended into one
-> score — with paired-bootstrap intervals. Every published metric is
-> deterministic; no result depends on an LLM judge.
->
-> **What the evaluation revealed.** The improved configuration showed two metrics
-> with intervals excluding zero on held-out data. Auditing my own reporting code
-> showed both depended on the improved arm retrieving twice as many chunks as the
-> baseline; at a matched retrieval budget, both intervals included zero. Ten of
-> twelve metrics showed no measurable difference, precision fell, and
-> non-authoritative citations rose. The harness caught a confound in my own frozen
-> result, which is exactly what it was built to do.
-
----
-
-## E. My role
-
-**Self-directed research-engineering case study.** Not client work — there is no
-external stakeholder, no production traffic and no paid engagement.
-
-Sole author of:
-
-- **Architecture** — configuration-driven pipeline, shared code path across arms,
-  runs decoupled from scoring
-- **Dataset construction** — 14-document synthetic corpus and 50-case benchmark
-  with quote-anchored ground-truth evidence spans
-- **Evaluation design** — metric definitions, separation rules, held-out split
-  protocol and access ledger
-- **Implementation** — ingest, chunking, retrieval, citation binding, tracing,
-  metrics, reporting, CLI
-- **Experimentation** — baseline and improved runs, failure-profile-driven
-  intervention selection, development-only ablation
-- **Statistical audit** — independent recomputation of the frozen result; found
-  and documented the retrieval-budget confound
-- **Regression testing** — confirmed failures frozen as offline tests
-- **Documentation** — methodology, results, limitations, reproduction and claim
-  boundary
-
----
-
-## F. Deliverables I can provide on similar work
-
-- **RAG evaluation harness** — configuration-driven, arms sharing one code path
-- **Retrieval benchmark** — versioned dataset with quote-anchored ground truth and
-  a guarded held-out split
-- **Citation and grounding diagnostics** — validity, claim coverage, document
-  precision and authority, reported separately
-- **Test dataset construction** — including distractors, multi-hop chains and
-  principled unanswerable cases
-- **Trace instrumentation** — one structured record per case, sufficient to
-  diagnose failures nobody anticipated
-- **Failure taxonomy** — automatic, cause-ordered classification from trace signals
-- **Regression suite** — confirmed failures frozen as offline tests that need no
-  API key
-- **Reproducibility package** — dependency locks, seeds, content-addressed caches,
-  checksummed frozen artefacts
-- **Technical findings report** — with an explicit claim boundary and the phrasing
-  the evidence licenses
-
----
-
-## G. Technologies
-
-Only what the repository actually uses:
-
-**Python 3.12** · **NumPy** · **scikit-learn** (TF-IDF + truncated SVD) ·
-**PyTorch** and **Hugging Face Transformers** (`all-MiniLM-L6-v2` embeddings) ·
-**BM25** (implemented in-repo) · **Reciprocal Rank Fusion** · **Pydantic**
-(config validation) · **Jinja2** (prompt templating) · **Google Gemini API**
-(`google-genai`) · **pytest** · **ruff** · **mypy** · **GitHub Actions** ·
-**YAML/JSON Schema** · **Git**
-
-Not used, and therefore not listed: LangChain, LlamaIndex, FAISS, any vector
-database, any orchestration framework.
-
----
-
-## H. Skill tag suggestions
-
-Upwork's tag vocabulary changes, so these are candidates to search for rather than
-guaranteed-available tags. Ordered by relevance:
-
-1. Python
-2. Machine Learning
-3. Natural Language Processing
-4. Retrieval Augmented Generation
-5. Artificial Intelligence
-6. Model Validation
-7. Data Science
-8. Technical Documentation
-
-Secondary, if slots remain: Information Retrieval · LLM Evaluation ·
-Software Testing · Statistical Analysis · Research
-
----
-
-## Wording guard
-
-If this copy is edited, these must not creep back in:
-
-| Do not write | Because |
-|---|---|
-| "improved RAG accuracy by X%" | no bare percentage is supported; the CI is the result |
-| "statistically significant" | no null model, no p-value, no multiplicity control |
-| "the improved system ranks better" | not established once the budget is matched |
-| "hybrid retrieval / BM25 / chunking caused the improvement" | held-out evidence does not attribute to components; the ablation is development-only |
-| "production-ready", "enterprise-grade", "scalable" | no security review, no load testing, no threat model |
-| "client project", "delivered for" | self-directed case study |
-| "CI is green" | no GitHub Actions run has been observed |
-| "a measured difference is attributable to the change" | too strong; say differences "can be traced to explicit configuration changes without code-path drift" |
-| "grounding" in a title or headline claim | implies claim-to-evidence entailment, which is not implemented; say "citations" or "retrieval" |
-| FAISS, LangChain, LlamaIndex, any vector database | none is used; the dense retriever is exact cosine search over a NumPy matrix |
+Evidence: [corrected results](../reports/corrected-v2/held-out/comparison.md),
+[case study](case-study.md), and [limitations](../docs/limitations.md).

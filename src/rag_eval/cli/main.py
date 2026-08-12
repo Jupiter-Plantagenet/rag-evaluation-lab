@@ -104,7 +104,6 @@ def cmd_run(args: argparse.Namespace) -> int:
         shown = f"{value:.3f}" if isinstance(value, float) else str(value)
         print(f"  {key:26s} {shown}" + (f"   (n={n})" if n is not None else ""))
     print(f"  fabricated citations       {summary['total_fabricated_citations']}")
-    print(f"  non-authoritative citations{summary['total_non_authoritative_citations']:>3}")
     print(f"  cache hit rate             {summary['latency']['cache_hit_rate']}")
     return 0
 

@@ -227,3 +227,4 @@ class PipelineOutput:
     rewritten_queries: tuple[str, ...] = ()
     unresolved_labels: tuple[str, ...] = ()
     errors: tuple[str, ...] = field(default_factory=tuple)
+    raw_prompt: str = ""

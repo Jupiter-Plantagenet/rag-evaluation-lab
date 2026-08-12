@@ -43,7 +43,7 @@ class MetricComparison:
     # NOTE ON THE FIELD NAME. This was called `significant` until the Phase-3b
     # audit. The rename is not cosmetic. "Significant" imports a hypothesis-test
     # meaning this procedure does not deliver: there is no null model, no p-value,
-    # and -- with twelve metrics compared at 95% -- no correction for multiple
+    # and -- with several metrics compared at 95% -- no correction for multiple
     # comparisons. What the field actually records is the narrow, literal fact
     # that a 95% paired-bootstrap interval did not contain zero. Naming it after
     # what it measures removes the reader's temptation to infer the rest.
@@ -145,8 +145,6 @@ METRICS = [
     "recall_at_3",
     "recall_at_5",
     "recall_at_10",
-    "precision_at_5",
-    "ndcg_at_5",
     "mrr",
     "document_recall",
     "required_fact_coverage",
@@ -157,7 +155,6 @@ METRICS = [
 
 COUNTERS = [
     "n_fabricated",
-    "n_non_authoritative",
     "forbidden_claims",
 ]
 

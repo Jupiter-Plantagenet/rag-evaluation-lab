@@ -152,13 +152,11 @@ def test_binding_uses_only_what_the_model_was_shown() -> None:
 
 
 @pytest.mark.unit
-def test_authority_is_none_when_unknown_not_false() -> None:
-    """An unknown authority status must not be scored as a known failure."""
+def test_document_level_authority_is_deprecated_trace_metadata() -> None:
+    """It cannot establish authority for a claim, fact, and effective date."""
     claims = split_claims("A fact [C1].")
     retrieved = [_scored("x#aa", "unknown-doc", "text")]
-    citations, _ = bind_citations(
-        claims, {"C1": "x#aa"}, retrieved, {"unknown-doc": "text"}, authoritative_for={}
-    )
+    citations, _ = bind_citations(claims, {"C1": "x#aa"}, retrieved, {"unknown-doc": "text"})
     assert citations[0].authoritative is None
 
 

@@ -91,8 +91,7 @@ METRIC_KEYS = [
     "recall_at_5",
     "recall_at_10",
     "mrr",
-    "precision_at_5",
-    "ndcg_at_5",
+    "precision_at_4",
     "document_recall",
 ]
 
@@ -150,8 +149,7 @@ def run_variant(variant: Variant, cases: list[EvalCase], embedder_kind: str) -> 
             "recall_at_5": M.recall_at_k(case, retrieved, 5, HIT_THRESHOLD),
             "recall_at_10": M.recall_at_k(case, retrieved, 10, HIT_THRESHOLD),
             "mrr": M.mrr(case, retrieved, HIT_THRESHOLD),
-            "precision_at_5": M.precision_at_k(case, retrieved, 5, HIT_THRESHOLD),
-            "ndcg_at_5": M.ndcg_at_k(case, retrieved, 5, HIT_THRESHOLD),
+            "precision_at_4": M.precision_at_k(case, retrieved, 4, HIT_THRESHOLD),
             "document_recall": M.document_recall(case, retrieved),
         }
 
@@ -251,7 +249,7 @@ def render_markdown(results: list[VariantResult], embedder_kind: str, n_cases: i
     a("comparison and any difference is attributable to chunking or fusion rather than")
     a("to how much context the variant was allowed.")
     a("")
-    matched_keys = ["recall_at_1", "recall_at_3", "mrr", "ndcg_at_5", "precision_at_5"]
+    matched_keys = ["recall_at_1", "recall_at_3", "mrr", "precision_at_4", "document_recall"]
     a("| | Variant | " + " | ".join(matched_keys) + " |")
     a("|---|---|" + "---:|" * len(matched_keys))
     for r in matched:
@@ -269,7 +267,7 @@ def render_markdown(results: list[VariantResult], embedder_kind: str, n_cases: i
         "recall_at_3",
         "recall_at_10",
         "mrr",
-        "precision_at_5",
+        "precision_at_4",
         "document_recall",
     ]
     by_key = {r.variant.key: r for r in results}

@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from rag_eval.errors import ConfigError
 
@@ -63,10 +63,17 @@ class EvaluationConfig(_Strict):
     # where a chunk boundary happened to fall.
     hit_coverage_threshold: float = 0.5
     recall_at_k: list[int] = Field(default_factory=lambda: [1, 3, 5, 10])
-    judge_enabled: bool = True
-    judge_model: str = "gemini-2.5-flash"
-    judge_temperature: float = 0.0
     bootstrap_resamples: int = 10000
+
+    @model_validator(mode="before")
+    @classmethod
+    def _discard_inert_legacy_judge_fields(cls, value: Any) -> Any:
+        """Read historical configs without retaining inactive judge settings."""
+        if isinstance(value, dict):
+            value = dict(value)
+            for name in ("judge_enabled", "judge_model", "judge_temperature"):
+                value.pop(name, None)
+        return value
 
 
 class PipelineConfig(_Strict):

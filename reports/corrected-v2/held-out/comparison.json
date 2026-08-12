@@ -1,0 +1,116 @@
+{
+  "common_budget_ranking_sensitivity": {
+    "budget": 4,
+    "estimand": "Post-hoc sensitivity analysis with both arms capped at the same candidate budget.",
+    "metrics": [
+      {
+        "baseline": 0.6917,
+        "ci_excludes_zero": false,
+        "ci_high": 0.2,
+        "ci_low": -0.0667,
+        "delta": 0.0583,
+        "direction": "no measurable difference",
+        "improved": 0.75,
+        "metric": "recall",
+        "n_paired": 20
+      },
+      {
+        "baseline": 0.6667,
+        "ci_excludes_zero": false,
+        "ci_high": 0.3208,
+        "ci_low": -0.0167,
+        "delta": 0.15,
+        "direction": "no measurable difference",
+        "improved": 0.8167,
+        "metric": "mrr",
+        "n_paired": 20
+      },
+      {
+        "baseline": 0.2875,
+        "ci_excludes_zero": false,
+        "ci_high": 0.05,
+        "ci_low": -0.1125,
+        "delta": -0.025,
+        "direction": "no measurable difference",
+        "improved": 0.2625,
+        "metric": "precision",
+        "n_paired": 20
+      },
+      {
+        "baseline": 0.9211,
+        "ci_excludes_zero": false,
+        "ci_high": 0.0789,
+        "ci_low": 0.0,
+        "delta": 0.0263,
+        "direction": "no measurable difference",
+        "improved": 0.9474,
+        "metric": "document_recall",
+        "n_paired": 19
+      }
+    ]
+  },
+  "configured_system_outcomes": {
+    "baseline_budget": 4,
+    "estimand": "Outcomes of the complete configured pipelines at their actual retrieval budgets.",
+    "improved_budget": 8,
+    "metrics": [
+      {
+        "baseline": 0.6917,
+        "ci_excludes_zero": true,
+        "ci_high": 0.375,
+        "ci_low": 0.025,
+        "delta": 0.1917,
+        "direction": "improved",
+        "improved": 0.8833,
+        "metric": "recall",
+        "n_paired": 20
+      },
+      {
+        "baseline": 0.6667,
+        "ci_excludes_zero": true,
+        "ci_high": 0.3392,
+        "ci_low": 0.0075,
+        "delta": 0.1683,
+        "direction": "improved",
+        "improved": 0.835,
+        "metric": "mrr",
+        "n_paired": 20
+      },
+      {
+        "baseline": 0.2875,
+        "ci_excludes_zero": true,
+        "ci_high": -0.0563,
+        "ci_low": -0.225,
+        "delta": -0.1375,
+        "direction": "regressed",
+        "improved": 0.15,
+        "metric": "precision",
+        "n_paired": 20
+      },
+      {
+        "baseline": 0.9211,
+        "ci_excludes_zero": false,
+        "ci_high": 0.0789,
+        "ci_low": 0.0,
+        "delta": 0.0263,
+        "direction": "no measurable difference",
+        "improved": 0.9474,
+        "metric": "document_recall",
+        "n_paired": 19
+      }
+    ]
+  },
+  "deprecated_measurements": [
+    "nDCG is retained only in historical traces and reports. It is not a current v2 metric or conclusion.",
+    "n_non_authoritative is retained only in historical traces and is excluded from v2 reporting; document-level ownership does not establish claim-specific, fact-specific, or time-specific source authority."
+  ],
+  "metric_change": "nDCG is deprecated from v2 conclusions: the original definition double-counted overlapping chunks, while the bounded replacement incorrectly limited one retrieved chunk to one evidence unit.",
+  "metric_version": "2.1.0",
+  "source": {
+    "baseline_run": "baseline-test-20260806T182019Z-66ee099b",
+    "baseline_trace_sha256": "f7c2df4ceb322c817e5cc7a6bbf083f9dd471f70172f20a3f01f199e74164352",
+    "improved_run": "improved-test-20260806T182251Z-1e6a1bf8",
+    "improved_trace_sha256": "1f13b109a811d43d45650850d063c68716dd7741a1150f8eb03fbeff1b2299f8",
+    "trace_only": true
+  }
+}

@@ -49,8 +49,8 @@ runs/*
 !runs/baseline-test-20260806T182019Z-66ee099b/
 !runs/improved-test-20260806T182251Z-1e6a1bf8/
 
-# The live cache can reach hundreds of MB. The curated CI replay subset under
-# tests/fixtures/cache/ IS committed and is budgeted at <2 MB.
+# The optional live response cache can reach hundreds of MB. Integration tests
+# use deterministic frozen scripted responses; no response replay cache is committed.
 cache/
 
 # Vector indexes are rebuilt from the corpus + a manifest hash; never committed.

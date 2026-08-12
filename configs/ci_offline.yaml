@@ -16,6 +16,3 @@ embedder:
   params:
     dimension: 256
     seed: 20260806
-
-evaluation:
-  judge_enabled: false   # no judge in CI: it would need a live model

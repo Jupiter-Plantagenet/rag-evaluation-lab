@@ -38,7 +38,6 @@ FAILURE_CLASSES: dict[str, str] = {
     "ambiguity_collapse": "Picked one reading of an ambiguous question without flagging it.",
     "citation_missing": "Substantive claims carry no citation.",
     "citation_unresolvable": "A cited label maps to no chunk the model was shown.",
-    "citation_non_authoritative": "Cited a restating document when an authoritative one exists.",
     "format_violation": "Output violated the response contract.",
     "pipeline_error": "The pipeline raised before producing an answer.",
 }
@@ -162,9 +161,6 @@ def classify(
         )
 
     coverage = m.get("required_fact_coverage")
-
-    if m.get("n_non_authoritative", 0) > 0 and case.category == "citation_stress":
-        return Classification(case.id, True, "citation_non_authoritative", secondary, {})
 
     claim_coverage = m.get("claim_citation_coverage")
     if claim_coverage is not None and claim_coverage < 0.5:

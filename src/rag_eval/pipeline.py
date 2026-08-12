@@ -106,9 +106,6 @@ class Pipeline:
             labels,
             results,
             self.corpus.bodies(),
-            authoritative_for={
-                d: set(doc.authoritative_for) for d, doc in self.corpus.documents.items()
-            },
         )
 
         return PipelineOutput(
@@ -117,6 +114,7 @@ class Pipeline:
             retrieved=tuple(results),
             context_text=context_text,
             context_labels=labels,
+            raw_prompt=completion.raw_prompt,
             claims=tuple(claims),
             citations=tuple(citations),
             abstained=detect_abstention(answer),

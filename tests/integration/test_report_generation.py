@@ -80,6 +80,8 @@ def test_comparison_reads_real_traces_and_pairs_them_by_case(two_runs: tuple[Pat
     assert comparison.n_cases == 4
     assert comparison.baseline_run == "fixture-base"
     assert comparison.improved_run == "fixture-impr"
+    assert all("ndcg" not in metric.metric for metric in comparison.metrics)
+    assert all(metric.metric != "precision_at_5" for metric in comparison.metrics)
 
     for metric in comparison.metrics:
         assert metric.n_paired <= comparison.n_cases
@@ -140,6 +142,9 @@ def test_the_three_artefacts_are_written_and_cannot_disagree(
     markdown = paths["markdown"].read_text(encoding="utf-8")
 
     assert len(rows) == len(payload["metrics"])
+    assert all("ndcg" not in row["metric"] for row in rows)
+    assert all(row["metric"] != "precision_at_5" for row in rows)
+    assert "ndcg" not in markdown.lower()
     for row, metric in zip(rows, payload["metrics"], strict=True):
         assert row["metric"] == metric["metric"]
         assert int(row["n_paired"]) == metric["n_paired"]

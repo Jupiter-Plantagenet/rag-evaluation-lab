@@ -65,11 +65,10 @@ def test_every_document_declares_itself_synthetic() -> None:
 
 @pytest.mark.unit
 def test_exactly_one_authoritative_document_per_fact(ledger: dict) -> None:
-    """Citation precision depends on there being a single right answer to cite.
+    """Corpus source metadata must declare one owner per fact.
 
-    The `citation_non_authoritative` failure class is only meaningful if
-    'authoritative' is well defined -- two owners for one fact would make the
-    class unmeasurable.
+    This validates authored corpus metadata, not the deprecated
+    citation-authority measurement.
     """
     owners: dict[str, list[str]] = {}
     for fact in ledger["facts"]:

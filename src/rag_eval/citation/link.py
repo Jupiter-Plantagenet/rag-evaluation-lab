@@ -140,7 +140,6 @@ def bind_citations(
     context_labels: dict[str, str],
     retrieved: list[ScoredChunk],
     corpus_bodies: dict[str, str],
-    authoritative_for: dict[str, set[str]] | None = None,
 ) -> tuple[list[Citation], list[str]]:
     """Resolve each claim's labels to real source spans.
 
@@ -184,13 +183,6 @@ def bind_citations(
             body = corpus_bodies.get(chunk.doc_id, "")
             quoted = body[chunk.char_start : chunk.char_end] if body else chunk.text
 
-            is_auth = None
-            if authoritative_for is not None:
-                # None rather than False when we cannot tell: an unknown
-                # authority status must not be scored as a known failure.
-                owned = authoritative_for.get(chunk.doc_id)
-                is_auth = bool(owned) if owned is not None else None
-
             citations.append(
                 Citation(
                     citation_id=f"ci{len(citations)}",
@@ -202,7 +194,9 @@ def bind_citations(
                     source_char_end=chunk.char_end,
                     quoted_text=quoted[:400],
                     resolved=True,
-                    authoritative=is_auth,
+                    # Retained for historical trace-schema compatibility only.
+                    # Current records do not attempt semantic source authority.
+                    authoritative=None,
                 )
             )
 

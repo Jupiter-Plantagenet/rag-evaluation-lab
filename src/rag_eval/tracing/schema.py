@@ -7,8 +7,10 @@ in the report from disagreeing with the trace it supposedly came from.
 
 The design rule throughout: **record what happened, not a summary of what
 happened.** Every retrieval score is kept rather than collapsed to a rank; the
-exact context string is kept rather than reconstructed from chunk ids; the
-prompt is kept rather than re-derived from a config that may since have changed.
+exact context string is kept rather than reconstructed from chunk ids. Current
+runs also retain the rendered prompt; frozen historical traces predate that
+field being populated and retain question, context, context hash and template
+provenance instead.
 Diagnosing a failure means answering questions nobody anticipated, and a
 summary can only answer the anticipated ones.
 """
@@ -179,7 +181,7 @@ def record_from_output(
         context_text=output.context_text,
         context_sha=sha256(output.context_text.encode("utf-8")).hexdigest()[:16],
         generator_model=getattr(pipeline.generator, "model", "unknown"),
-        prompt="",  # filled by the runner, which holds the rendered prompt
+        prompt=output.raw_prompt,
         answer=output.answer,
         abstained=output.abstained,
         clarification_requested=output.clarification_requested,

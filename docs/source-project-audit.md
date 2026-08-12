@@ -424,8 +424,8 @@ something `rag-evaluation-lab` measures rather than something it hopes to avoid:
 | Sources disagreeing with context | One retrieval pass, and a trace that records exactly what the model saw |
 | Structure-blind chunking splitting headings from content | `chunk_boundary` failure class; structure-aware chunking as a *tested* intervention |
 | No abstention behaviour | Four unanswerable cases and an abstention confusion matrix |
-| Demo mode indistinguishable from RAG | Offline mode replays a real cached response through the real pipeline |
-| CI red with nobody noticing | CI green before any badge exists |
+| Demo mode indistinguishable from RAG | Scripted offline integration tests exercise the real pipeline path |
+| CI red with nobody noticing | Linux and Windows CI are configured before publication claims |
 | README describing a different system | Every reported number generated from `comparison.json`, enforced by a test |
 
 ---

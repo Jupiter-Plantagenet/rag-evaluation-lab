@@ -50,7 +50,6 @@ def score_record(
     for k in ks:
         out[f"recall_at_{k}"] = M.recall_at_k(case, retrieved, k, threshold)
         out[f"precision_at_{k}"] = M.precision_at_k(case, retrieved, k, threshold)
-        out[f"ndcg_at_{k}"] = M.ndcg_at_k(case, retrieved, k, threshold)
     out["mrr"] = M.mrr(case, retrieved, threshold)
     out["document_recall"] = M.document_recall(case, retrieved)
 
@@ -185,7 +184,6 @@ def summarise(
     numeric = [
         *[f"recall_at_{k}" for k in config.evaluation.recall_at_k],
         *[f"precision_at_{k}" for k in config.evaluation.recall_at_k],
-        *[f"ndcg_at_{k}" for k in config.evaluation.recall_at_k],
         "mrr",
         "document_recall",
         "required_fact_coverage",
@@ -212,9 +210,6 @@ def summarise(
     )
 
     aggregate["total_fabricated_citations"] = sum(r.metrics.get("n_fabricated", 0) for r in ok)
-    aggregate["total_non_authoritative_citations"] = sum(
-        r.metrics.get("n_non_authoritative", 0) for r in ok
-    )
     aggregate["total_forbidden_claims"] = sum(r.metrics.get("forbidden_claims", 0) for r in ok)
 
     latencies = sorted(r.latency_ms for r in ok)

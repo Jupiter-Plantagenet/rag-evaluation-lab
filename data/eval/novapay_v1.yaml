@@ -1,6 +1,6 @@
 # NovaPay evaluation dataset v1
 #
-# 34 cases. Authored against data/corpus/novapay/, validated against
+# 50 cases: 28 development and 22 held-out. Authored against data/corpus/novapay/, validated against
 # schemas/eval_case.v1.schema.json, and cross-validated against
 # fact_ledger.yaml -- every `fact_id` must exist, every `quote` must resolve to a
 # verbatim substring of the named document, and every `gap_id` must name a
@@ -21,11 +21,12 @@
 #     the gap list AND by searching the corpus for its topic, so that
 #     unanswerable means "designed to be absent" rather than "I did not find it".
 #
-# SPLIT: 19 dev / 15 test, stratified by category (see split_manifest.yaml).
+# SPLIT: 28 development / 22 held-out, stratified by category. Split allocation
+# is recorded directly on each case; there is no separate split_manifest.yaml.
 # The test split is loadable only via an explicit --final flag and every access
 # is logged. Interventions were chosen from dev failures only.
 #
-# n=15 on the held-out split is small. Most metric differences will have
+# n=22 on the held-out split is small. Most metric differences will have
 # bootstrap confidence intervals that cross zero, and are reported as "no
 # measurable difference" rather than as improvements. This is a stated
 # limitation, not a defect to be hidden by rounding.

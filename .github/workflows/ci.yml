@@ -93,7 +93,7 @@ jobs:
       - name: Unit tests
         run: python -m pytest tests/unit -m unit -q --cov=rag_eval --cov-report=xml
 
-      - name: Integration tests (offline, replayed cache)
+      - name: Integration tests (offline, frozen scripted responses)
         run: python -m pytest tests/integration -m integration -q --cov=rag_eval --cov-append --cov-report=xml
 
       - name: Regression tests (frozen failures)

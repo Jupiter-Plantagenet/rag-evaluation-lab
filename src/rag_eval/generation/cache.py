@@ -1,7 +1,7 @@
 """Content-addressed on-disk cache for model responses.
 
-This is what makes the project both reproducible and cheap to re-run, and it is
-what lets CI replay real model outputs with no credentials.
+This is an optional local cache for model calls. CI does not rely on a committed
+response replay cache; its integration tests use deterministic scripted responses.
 
 Design decisions worth stating, because each has a tempting wrong answer:
 
@@ -133,7 +133,7 @@ class DiskCache:
 def cache_root() -> Path:
     """``RAG_EVAL_CACHE_DIR`` if set, else ``<cwd>/cache``.
 
-    CI points this at ``tests/fixtures/cache``, a small committed replay set.
+    CI integration tests use scripted responses and do not require this cache.
     """
     return Path(os.environ.get("RAG_EVAL_CACHE_DIR") or (Path.cwd() / "cache"))
 

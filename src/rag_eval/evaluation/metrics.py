@@ -105,14 +105,50 @@ def precision_at_k(
 def ndcg_at_k(
     case: EvalCase, retrieved: list[dict[str, Any]], k: int, threshold: float
 ) -> float | None:
-    """Binary-gain nDCG. Rewards ranking evidence higher, not merely retrieving it."""
+    """Deprecated bounded nDCG retained for historical compatibility only.
+
+    Each expected evidence span is one relevance unit and may earn gain once.
+    Retrieved chunks are considered in rank order; a chunk that covers one or
+    more still-unmatched units is matched to the unit it covers most completely
+    (then dataset order breaks ties).  A chunk also earns at most one gain.
+    This bounded replacement prevents duplicate gain, but incorrectly limits a
+    retrieved chunk containing several independently required spans to one unit.
+    Corrected-v2 conclusions therefore do not use this metric.
+    """
     spans = [ev for ev in case.expected_evidence_spans if ev.char_start >= 0]
     if not spans:
         return None
-    relevant = set(_relevant_ranks(case, retrieved, threshold))
-    dcg = sum(1.0 / math.log2(r + 1) for r in relevant if r <= k)
+
+    unmatched = set(range(len(spans)))
+    matched_ranks: list[int] = []
+    for retrieved_chunk in sorted(retrieved, key=lambda r: int(r["rank"])):
+        rank = int(retrieved_chunk["rank"])
+        if rank > k:
+            break
+        chunk_span = (retrieved_chunk["char_start"], retrieved_chunk["char_end"])
+        candidates: list[tuple[float, int]] = []
+        for index in unmatched:
+            evidence = spans[index]
+            if evidence.doc_id != retrieved_chunk["doc_id"]:
+                continue
+            if is_hit((evidence.char_start, evidence.char_end), chunk_span, threshold=threshold):
+                overlap = max(
+                    0,
+                    min(evidence.char_end, chunk_span[1]) - max(evidence.char_start, chunk_span[0]),
+                )
+                coverage = overlap / (evidence.char_end - evidence.char_start)
+                candidates.append((coverage, index))
+        if candidates:
+            _, chosen = max(candidates, key=lambda item: (item[0], -item[1]))
+            unmatched.remove(chosen)
+            matched_ranks.append(rank)
+
+    dcg = sum(1.0 / math.log2(rank + 1) for rank in matched_ranks)
     ideal = sum(1.0 / math.log2(i + 2) for i in range(min(len(spans), k)))
-    return dcg / ideal if ideal > 0 else 0.0
+    score = dcg / ideal if ideal > 0 else 0.0
+    # This is an invariant of the matching definition, not a clamp.
+    assert 0.0 <= score <= 1.0
+    return score
 
 
 def document_recall(case: EvalCase, retrieved: list[dict[str, Any]]) -> float | None:
@@ -265,18 +301,14 @@ def abstention_outcome(case: EvalCase, abstained: bool, clarified: bool) -> Abst
 def citation_metrics(
     case: EvalCase, citations: list[dict[str, Any]], claims: list[dict[str, Any]]
 ) -> dict[str, Any]:
-    """Citation quality, split into the four things that can independently fail.
+    """Citation resolution, coverage, and document targeting.
 
     - validity  : do cited labels resolve to a chunk the model was shown?
     - coverage  : what share of claims carry any citation at all?
     - document precision : of resolved citations, how many point at a document
                   the ground truth actually names?
-    - authority : how many point at a restating document when an authoritative
-                  one exists?
-
-    Kept apart because they have different fixes. A pipeline can have perfect
-    validity and no coverage (cites correctly, but only once), or full coverage
-    and poor authority (cites everything, often the wrong document).
+    The historical ``authoritative`` trace flag is excluded: it cannot establish
+    claim-, fact-, or date-specific source authority.
     """
     resolved = [c for c in citations if c["resolved"]]
     fabricated = [c for c in citations if not c["resolved"]]
@@ -286,8 +318,6 @@ def citation_metrics(
 
     claims_with_citation = {c["claim_id"] for c in citations}
     substantive = [c for c in claims if len(c["text"].split()) >= 4]
-
-    non_authoritative = [c for c in resolved if c.get("authoritative") is False]
 
     return {
         "n_citations": len(citations),
@@ -303,7 +333,6 @@ def citation_metrics(
         )
         if substantive
         else None,
-        "n_non_authoritative": len(non_authoritative),
         "distinct_docs_cited": len({c["doc_id"] for c in resolved}),
     }
 
