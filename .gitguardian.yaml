@@ -1,0 +1,47 @@
+# GitGuardian / ggshield configuration.
+#
+# One ignored match, and it is worth explaining rather than just silencing.
+#
+# WHAT IS FLAGGED
+#
+# `data/corpus/novapay/api-authentication.md` shows an example HTTP request whose
+# Authorization header carries a Bearer token with the `sk_live_` prefix.
+#
+# `sk_live_` is Stripe's live secret-key prefix, so any credible scanner should
+# and does fire on it. This one is synthetic:
+#
+#   - NovaPay is a fictional payment processor invented for this evaluation
+#     corpus. The document declares `synthetic: true` in its front matter and
+#     carries a disclaimer. There is no service the token could authenticate
+#     against.
+#   - It does not match Stripe's key format: 16 lowercase hex characters, where
+#     a real `sk_live_` key is 24 or more mixed-case alphanumerics.
+#   - No live credential has ever been committed to this repository. `.env` has
+#     been gitignored since the first commit and was never tracked; the real
+#     GEMINI_API_KEY appears in no blob on any ref.
+#
+# WHY THE STRING IS NOT SIMPLY CHANGED
+#
+# The corpus bytes are hashed into `corpus_manifest_sha`
+# (5122d7bf518b0bf60d7925384edad8ca3725f01c0566e31ea85e713500451a34), which is
+# recorded inside all four run traces and every frozen held-out artefact, and is
+# checksummed by docs/frozen-held-out-result.md and verified by
+# tests/unit/test_frozen_artefacts.py. Editing one character would invalidate the
+# frozen scientific result. The alert is cosmetic; that edit would not be.
+#
+# The string appears in seven tracked files: the corpus document, the
+# publication checklist that documents it, and five run traces that quote the
+# retrieved chunk verbatim.
+#
+# See portfolio/publication-checklist.md for the full assessment.
+#
+# Matched by hash rather than plaintext, so this file does not become an eighth
+# copy of the string -- which is why the token is described above rather than
+# quoted. The hash below is the SHA-256 of the matched token.
+
+version: 2
+
+secret:
+  ignored-matches:
+    - name: "Synthetic NovaPay example token in the evaluation corpus (not a real credential)"
+      match: db6dd1788d6ec37988bd1cfa014a51b4695debbaaaacc6daecd8d78a594ebe74

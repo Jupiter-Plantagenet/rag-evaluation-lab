@@ -92,6 +92,30 @@ hashed into `corpus_manifest_sha` and therefore into every frozen artefact — s
 One further match was a false positive of the scanner itself:
 `BRAINTRUST_PROJECT=rag-evaluation-lab` is the repository name, not a credential.
 
+### What actually happened on publication
+
+GitHub push protection did **not** block, and GitHub secret scanning raised no
+alert. **GitGuardian did** — correctly, on the `sk_live_` prefix.
+
+Re-verified after the alert:
+
+- The live `GEMINI_API_KEY` appears in **no tracked file and no commit on any
+  ref**. Nothing real was published.
+- The flagged string does not match Stripe's key format: 16 lowercase hex
+  characters against a real key's 24+ mixed-case alphanumerics.
+
+It now appears in **seven** tracked files rather than two. Committing the `runs/`
+directories (the fix for the missing frozen artefacts) published five trace files
+that quote the retrieved corpus chunk verbatim, and that chunk contains the line.
+The amplification is a side effect of making the frozen evidence available, which
+was the more important defect to fix.
+
+`.gitguardian.yaml` in the repository root now ignores this one match by SHA-256,
+with the reasoning inline. It matches by hash rather than plaintext so the config
+does not itself become an eighth copy. The corpus is unchanged, and must stay
+unchanged: its bytes are hashed into `corpus_manifest_sha`, which is recorded in
+every run trace and every frozen artefact.
+
 ## Absolute local paths
 
 One found and fixed:
