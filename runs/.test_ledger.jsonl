@@ -1,0 +1,2 @@
+{"ci": false, "host": "Jupiter", "n_cases": 22, "reason": "final held-out evaluation, baseline arm; interventions were frozen after the dev-split analysis in commit b0d4fa4", "ts": "2026-08-06T18:20:19.295823+00:00", "user": "akorg"}
+{"ci": false, "host": "Jupiter", "n_cases": 22, "reason": "final held-out evaluation, improved arm; same frozen configuration as the dev analysis", "ts": "2026-08-06T18:22:51.390402+00:00", "user": "akorg"}

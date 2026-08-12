@@ -40,19 +40,37 @@ is not evidence of tampering.
 
 ## Checksums
 
-SHA-256 over the exact bytes as committed at `f4ac2b1`.
+SHA-256 over the exact bytes **as stored in the repository**, which are LF-normalised
+by `.gitattributes`. Any clean checkout on any platform reproduces them.
+
+> **These hashes were re-recorded once, and the artefact content did not change.**
+>
+> The original values were computed from a Windows working copy in which the
+> generated artefacts carried CRLF line endings. Git normalises them to LF on
+> commit, so the recorded hashes described bytes that existed only on the author's
+> machine and **could not be verified by anyone else** — the first CI run on Ubuntu
+> failed on exactly this.
+>
+> The fix normalised the working copy to the canonical LF form and re-recorded the
+> hashes from it. Before overwriting any file, its content was parsed and compared:
+> `comparison.json` deserialises to structurally identical data, every JSONL record
+> is identical, and every text file is byte-identical once CRLF is mapped to LF. No
+> number, no trace record and no ledger entry changed. What changed is the encoding
+> of the line terminator, and therefore the hash of the file on disk.
+>
+> This is a defect in how the freeze was *recorded*, not in what was frozen.
 
 ```
-1b3434bb6437d122a13d6e66559d9d7c9c488642364950ecd91c4e36c36fe680  runs/baseline-test-20260806T182019Z-66ee099b/trace.jsonl
-6b8d3b9ab5c32dbe1aa501d213e1032ad6415933f29c0477d489972a8a867721  runs/baseline-test-20260806T182019Z-66ee099b/metrics.json
-3255e5057efbc0dbf204c3fc471c3c707776f912ec8bc8528bd3398e0a078883  runs/baseline-test-20260806T182019Z-66ee099b/config.resolved.yaml
-ed3a067a248851cd2044cf1f1aaa500e9830506fa33519800edb16cafb73c72c  runs/improved-test-20260806T182251Z-1e6a1bf8/trace.jsonl
-29ac452bbc04970d0eef088b592ef852382e86d3e5e3d4509c4328e30cf71891  runs/improved-test-20260806T182251Z-1e6a1bf8/metrics.json
-9810ecf9dfa6a476b99ace4b532547165d8fd44b80c3de03cfc73342cfad87b7  runs/improved-test-20260806T182251Z-1e6a1bf8/config.resolved.yaml
-5389bbc201963e2922f560795be63f425ddd731a677da5b5705eb2f47b71cf21  reports/held-out/comparison.json
-233d5a558cbfde614691a79470b42d638719014a9ab2f30ce9e81d3c1b7ac842  reports/held-out/comparison.md
-3f17c1e0bd9067dbc0d6a1d1a4d93feeee6a081951530313cd89e1f6e2e03c9a  reports/held-out/metrics.csv
-e3a408feae391cdf6733d43ba25d43690fc50b061a316a8f96623bb3eaf8370d  runs/.test_ledger.jsonl
+f7c2df4ceb322c817e5cc7a6bbf083f9dd471f70172f20a3f01f199e74164352  runs/baseline-test-20260806T182019Z-66ee099b/trace.jsonl
+93c8f20dcba3fbfa5756db0ea8d2f6778ba55683c21f34c16c34e185bbf86b35  runs/baseline-test-20260806T182019Z-66ee099b/metrics.json
+79d63dd7f83aed0f4d26ca8b6f9412c6ecd779aed416392ecd1742dae428e88e  runs/baseline-test-20260806T182019Z-66ee099b/config.resolved.yaml
+1f13b109a811d43d45650850d063c68716dd7741a1150f8eb03fbeff1b2299f8  runs/improved-test-20260806T182251Z-1e6a1bf8/trace.jsonl
+8ad4eda6b101982077c03861bd71a188e9a628721b1bbe9c4f854ae5d31ffe0f  runs/improved-test-20260806T182251Z-1e6a1bf8/metrics.json
+502634793471474f5a09322fd7850ba665bd73034540206d065e318877e31b79  runs/improved-test-20260806T182251Z-1e6a1bf8/config.resolved.yaml
+c73cd8ae9c9ad43eb63f8600069807dbd3211d6e661c3814e7a115153d87d539  reports/held-out/comparison.json
+aede4d883a358033508dbe31b4f6b86a69bd8b1eabe6b627ffae034548f7f0b6  reports/held-out/comparison.md
+e111d3e862f9c6db94d0fba3c414513a30b06e52bed64052c0de102ba1729f62  reports/held-out/metrics.csv
+23ff2dfa3f55818d411e2b1cf9a62b8143918b87699b5aa4a269a6aadf042d35  runs/.test_ledger.jsonl
 ```
 
 Verify with:

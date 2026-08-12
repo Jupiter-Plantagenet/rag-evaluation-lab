@@ -27,11 +27,27 @@ coverage.xml
 htmlcov/
 
 # --- generated artifacts ------------------------------------------------------
-# Run outputs are reproducible from the committed cache fixtures + configs.
-# The frozen "paper run" under runs/frozen/ IS committed -- see docs/reproduction.md.
+# The four experiment runs and the held-out access ledger ARE committed. They are
+# the evidence: docs/frozen-held-out-result.md checksums the two held-out runs and
+# the ledger, a unit test verifies those checksums, and docs/reproduction.md
+# re-scores the dev comparison from the stored dev traces. None of that works if
+# they are not in the repository.
+#
+# This rule previously read `runs/*` with an exception for `runs/frozen/` -- a
+# directory that never existed, so the exception never matched and the "frozen"
+# artefacts were silently absent from every clone. CI caught it on the first run.
+#
+# New run directories are still ignored by default; add one explicitly when it
+# becomes evidence someone else needs.
 runs/*
-!runs/frozen/
 !runs/.gitkeep
+!runs/.test_ledger.jsonl
+!runs/baseline-dev-20260806T172842Z-04e0e7ec/
+!runs/baseline-dev-20260806T173225Z-04e0e7ec/
+!runs/baseline-dev-20260806T180859Z-66ee099b/
+!runs/improved-dev-20260806T181347Z-1e6a1bf8/
+!runs/baseline-test-20260806T182019Z-66ee099b/
+!runs/improved-test-20260806T182251Z-1e6a1bf8/
 
 # The live cache can reach hundreds of MB. The curated CI replay subset under
 # tests/fixtures/cache/ IS committed and is budgeted at <2 MB.

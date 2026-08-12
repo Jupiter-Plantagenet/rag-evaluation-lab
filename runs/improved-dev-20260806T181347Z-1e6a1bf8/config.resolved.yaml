@@ -1,0 +1,39 @@
+chunker:
+  kind: markdown_structure
+  params:
+    chunk_overlap: 50
+    chunk_size: 500
+    max_chars: 1200
+    min_chars: 120
+description: Structure-aware chunking, hybrid dense+BM25 retrieval with reciprocal
+  rank fusion, top-k raised to 8, near-duplicate context removal.
+embedder:
+  kind: minilm
+  params: {}
+evaluation:
+  bootstrap_resamples: 10000
+  hit_coverage_threshold: 0.5
+  judge_enabled: true
+  judge_model: gemini-3.5-flash-lite
+  judge_temperature: 0.0
+  recall_at_k:
+  - 1
+  - 3
+  - 5
+  - 10
+generator:
+  kind: gemini
+  params:
+    max_output_tokens: 1024
+    model: gemini-3.1-flash-lite
+    temperature: 0.0
+  prompt_template: answer_with_citations.jinja
+name: improved
+retrieval:
+  dedupe_threshold: 0.8
+  deduplicate: true
+  fetch_k: 30
+  k_rrf: 60
+  kind: hybrid_rrf
+  top_k: 8
+seed: 20260806
